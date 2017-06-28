@@ -1,0 +1,12 @@
+[submodule "rosdeps/genpy"]
+	path = rosdeps/genpy
+	url = https://github.com/ros/genpy.git
+[submodule "rosdeps/genmsg"]
+	path = rosdeps/genmsg
+	url = https://github.com/ros/genmsg.git
+[submodule "rosdeps/std_msgs"]
+	path = rosdeps/std_msgs
+	url = https://github.com/ros/std_msgs.git
+[submodule "rosdeps/ros_comm_msgs"]
+	path = rosdeps/ros_comm_msgs
+	url = https://github.com/ros/ros_comm_msgs.git

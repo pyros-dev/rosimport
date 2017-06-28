@@ -1,0 +1,4 @@
+string test_request
+---
+bool test_response
+# TOOD : add more fields for more testing
