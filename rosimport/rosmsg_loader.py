@@ -8,7 +8,7 @@ import tempfile
 import shutil
 
 
-from pyros_msgs.importer import rosmsg_generator
+from rosimport import rosmsg_generator
 
 """
 A module to setup custom importer for .msg and .srv files
@@ -54,6 +54,18 @@ def RosLoader(rosdef_extension):
 
             def __repr__(self):
                 return "ROSDefLoader/{0}({1}, {2})".format(loader_file_extension, self.name, self.path)
+
+            @staticmethod
+            def get_file_extension():
+                return loader_file_extension
+
+            @staticmethod
+            def get_origin_subdir():
+                return loader_origin_subdir
+
+            @staticmethod
+            def get_generated_subdir():
+                return loader_generated_subdir
 
             def __init__(self, fullname, path):
 
@@ -217,25 +229,22 @@ def RosLoader(rosdef_extension):
 
                         # relying on usual source file loader since we have generated normal python code
                         super(ROSDefLoader, self).__init__(fullname, init_path)
-                    else:  # it is a directory potentially containing an 'msg'
-                        # If we are here, it means it wasn't loaded before
-                        # We need to be able to load from source
-                        super(ROSDefLoader, self).__init__(fullname, path)
+                    # else:  # it is a directory potentially containing an 'msg'
+                    #     # If we are here, it means it wasn't loaded before
+                    #     # We need to be able to load from source
+                    #     super(ROSDefLoader, self).__init__(fullname, path)
+                    #
+                    #     # or to load from installed ros package (python already generated, no point to generate again)
+                    #     # Note : the path being in sys.path or not is a matter of ROS setup or metafinder.
+                    #     # TODO
 
-                        # or to load from installed ros package (python already generated, no point to generate again)
-                        # Note : the path being in sys.path or not is a matter of ROS setup or metafinder.
-                        # TODO
-
-                elif os.path.isfile(path):
-                    # The file should have already been generated (by the loader for a msg package)
-                    # Note we do not want to rely on namespace packages here, since they are not standardized for python2,
-                    # and they can prevent some useful usecases.
-
-                    # Hack to be able to "import generated classes"
-                    modname = fullname.rpartition('.')[2]
-                    filepath = os.path.join(self.outdir_pkg, loader_generated_subdir, '_' + modname + '.py')  # the generated module
-                    # relying on usual source file loader since we have previously generated normal python code
-                    super(ROSDefLoader, self).__init__(fullname, filepath)
+                # elif os.path.isfile(path):
+                #     # The file should have already been generated (by the loader for a msg package)
+                #     # Hack to be able to "import generated classes"
+                #     modname = fullname.rpartition('.')[2]
+                #     filepath = os.path.join(self.outdir_pkg, loader_generated_subdir, '_' + modname + '.py')  # the generated module
+                #     # relying on usual source file loader since we have previously generated normal python code
+                #     super(ROSDefLoader, self).__init__(fullname, filepath)
 
             def get_gen_path(self):
                 """Returning the generated path matching the import"""
@@ -243,6 +252,18 @@ def RosLoader(rosdef_extension):
 
             def __repr__(self):
                 return "ROSDefLoader/{0}({1}, {2})".format(loader_file_extension, self.name, self.path)
+
+            @staticmethod
+            def get_file_extension():
+                return loader_file_extension
+
+            @staticmethod
+            def get_origin_subdir():
+                return loader_origin_subdir
+
+            @staticmethod
+            def get_generated_subdir():
+                return loader_generated_subdir
 
     else:
         raise ImportError("ros_loader : Unsupported python version")

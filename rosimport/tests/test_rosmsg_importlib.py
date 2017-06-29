@@ -35,7 +35,7 @@ import unittest
 import importlib
 
 # Importing importer module
-from pyros_msgs.importer import rosmsg_finder
+from rosimport import rosmsg_finder, activate_hook_for, deactivate_hook_for
 
 # importlib
 # https://pymotw.com/3/importlib/index.html
@@ -51,22 +51,24 @@ from ._utils import print_importers
 
 
 class TestImportLibAnotherMsg(unittest.TestCase):
-    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps')
+    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps')
 
     @classmethod
     def setUpClass(cls):
         # We need to be before FileFinder to be able to find our '.msg' and '.srv' files without making a namespace package
-        supported_loaders = rosmsg_finder._get_supported_ros_loaders()
-        ros_hook = rosmsg_finder.ROSDirectoryFinder.path_hook(*supported_loaders)
-        sys.path_hooks.insert(1, ros_hook)
+        # supported_loaders = rosmsg_finder.get_supported_ros_loaders()
+        # ros_hook = rosmsg_finder.ROSDirectoryFinder.path_hook(*supported_loaders)
+        # sys.path_hooks.insert(1, ros_hook)
+        #
+        # sys.path.append(cls.rosdeps_path)
 
-        sys.path.append(cls.rosdeps_path)
+        activate_hook_for(cls.rosdeps_path)
 
     @classmethod
     def tearDownClass(cls):
         # CAREFUL : Even though we remove the path from sys.path,
         # initialized finders will remain in sys.path_importer_cache
-        sys.path.remove(cls.rosdeps_path)
+        deactivate_hook_for(cls.rosdeps_path)
 
     @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
     def test_importlib_import_absolute_msg(self):
@@ -89,31 +91,24 @@ class TestImportLibAnotherMsg(unittest.TestCase):
 
     # BROKEN 3.4 ?
     @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
-    def test_importlib_import_relative_pkg(self):
+    def test_importlib_import_relative_msg(self):
         # Verify that files exists and are importable
         test_msgs = importlib.__import__('msg', globals=globals(), level=1)
 
         self.assertTrue(test_msgs is not None)
         self.assertTrue(test_msgs.TestMsg is not None)
         self.assertTrue(callable(test_msgs.TestMsg))
-        self.assertTrue(test_msgs.TestMsg._type == 'pyros_msgs/TestMsg')  # careful between ros package name and python package name
+        self.assertTrue(test_msgs.TestMsg._type == 'rosimport/TestMsg')  # careful between ros package name and python package name
 
         # use it !
         self.assertTrue(test_msgs.TestMsg(test_bool=True, test_string='Test').test_bool)
 
     # BROKEN 3.4 ?
     @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
-    def test_importlib_import_relative_mod(self):
-        # Verify that files exists and are importable
-        msg = importlib.__import__('msg.TestMsg', globals=globals(), level=1)
-        TestMsg = msg.TestMsg
-
-        self.assertTrue(TestMsg is not None)
-        self.assertTrue(callable(TestMsg))
-        self.assertTrue(TestMsg._type == 'pyros_msgs/TestMsg')  # careful between ros package name and python package name
-
-        # use it !
-        self.assertTrue(TestMsg(test_bool=True, test_string='Test').test_bool)
+    def test_importlib_import_relative_class_raises(self):
+        assert __package__
+        with self.assertRaises(ImportError):
+            importlib.__import__('msg.TestMsg', globals=globals(), level=1)
 
     @unittest.skipIf(not hasattr(importlib, 'find_loader') or not hasattr(importlib, 'load_module'),
                      reason="importlib does not have attribute find_loader or load_module")
@@ -186,7 +181,7 @@ class TestImportLibAnotherMsg(unittest.TestCase):
         self.assertTrue(test_msgs is not None)
         self.assertTrue(test_msgs.TestMsg is not None)
         self.assertTrue(callable(test_msgs.TestMsg))
-        self.assertTrue(test_msgs.TestMsg._type == 'pyros_msgs/TestMsg')  # careful between ros package name and python package name
+        self.assertTrue(test_msgs.TestMsg._type == 'rosimport/TestMsg')  # careful between ros package name and python package name
 
         # use it !
         self.assertTrue(test_msgs.TestMsg(test_bool=True, test_string='Test').test_bool)
@@ -213,7 +208,7 @@ class TestImportLibAnotherMsg(unittest.TestCase):
 
         self.assertTrue(TestMsg is not None)
         self.assertTrue(callable(TestMsg))
-        self.assertTrue(TestMsg._type == 'pyros_msgs/TestMsg')
+        self.assertTrue(TestMsg._type == 'rosimport/TestMsg')
 
         # use it !
         self.assertTrue(TestMsg(test_bool=True, test_string='Test').test_bool)
@@ -264,7 +259,7 @@ class TestImportLibAnotherMsg(unittest.TestCase):
         self.assertTrue(test_msgs is not None)
         self.assertTrue(test_msgs.TestMsg is not None)
         self.assertTrue(callable(test_msgs.TestMsg))
-        self.assertTrue(test_msgs.TestMsg._type == 'pyros_msgs/TestMsg')  # careful between ros package name and python package name
+        self.assertTrue(test_msgs.TestMsg._type == 'rosimport/TestMsg')  # careful between ros package name and python package name
 
         # use it !
         self.assertTrue(test_msgs.TestMsg(test_bool=True, test_string='Test').test_bool)

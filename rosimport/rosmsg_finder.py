@@ -4,7 +4,7 @@ import contextlib
 import importlib
 import site
 
-from pyros_msgs.importer import rosmsg_loader
+from rosimport import rosmsg_loader
 
 """
 A module to setup custom importer for .msg and .srv files
@@ -23,6 +23,7 @@ import sys
 
 import logging
 
+from ._utils import _ImportError, _verbose_message
 from .rosmsg_loader import ROSMsgLoader, ROSSrvLoader
 
 if (2, 7) <= sys.version_info < (3, 4):  # valid until which py3 version ?
@@ -30,7 +31,6 @@ if (2, 7) <= sys.version_info < (3, 4):  # valid until which py3 version ?
     # from .importlib2 import util as importlib_util
     import pkg_resources  # useful to have empty directory imply namespace package (like for py3)
     import filefinder2
-    from ._utils import _ImportError, _verbose_message
 
     class ROSDirectoryFinder(filefinder2.FileFinder2):
         """Finder to interpret directories as modules, and files as classes"""
@@ -77,14 +77,17 @@ if (2, 7) <= sys.version_info < (3, 4):  # valid until which py3 version ?
                         if any(f.endswith(suffix) for f in files):
                             loader_class = loader_cls
                             rosdir = root
-                if loader_class and rosdir and rosdir == base_path:  # we found a message/service file in the hierarchy, that belong to our module
+                if loader_class and rosdir and rosdir == base_path:
+                    # we found a message/service file in the hierarchy, that belong to our module
                     # Generate something !
-                    # we are looking for submodules either in generated location (to be able to load generated python files) or in original msg location
+                    # we are looking for submodules either in generated location
+                    # to be able to load generated python files) or in original msg location
                     loader = loader_class(fullname, base_path)  # loader.get_gen_path()])
                     # We DO NOT WANT TO add the generated dir in sys.path to use a python loader
                     # since the plan is to eventually not have to rely on files at all TODO
 
-            # if we couldn't build a loader before we forward the call to our parent FileFinder2 (useful for implicit namespace packages)
+            # if we couldn't build a loader before we forward the call to our parent FileFinder2
+            # useful for implicit namespace packages
             loader = loader or super(ROSDirectoryFinder, self).find_module(fullname, path)
             # If we couldnt find any loader before, we return None
             return loader
@@ -92,13 +95,13 @@ if (2, 7) <= sys.version_info < (3, 4):  # valid until which py3 version ?
         @classmethod
         def path_hook(cls, *loader_details):
             # Same as FileFinder2
-            def path_hook_for_ROSDirectoryFinder(path):
+            def rosimporter_path_hook(path):
                 """Path hook for ROSDirectoryFinder."""
                 if not os.path.isdir(path):
                     raise _ImportError('only directories are supported', path=path)
                 return cls(path, *loader_details)
 
-            return path_hook_for_ROSDirectoryFinder
+            return rosimporter_path_hook
 
 elif sys.version_info >= (3, 4):  # we do not support 3.2 and 3.3 (maybe we could, if it was worth it...)
     import importlib.machinery as importlib_machinery
@@ -110,12 +113,16 @@ elif sys.version_info >= (3, 4):  # we do not support 3.2 and 3.3 (maybe we coul
 
         def __init__(self, path, *ros_loader_details):
             """
-            Finder to get directories containing ROS message and service files.
-            It need to be inserted in sys.path_hooks before FileFinder, since these are Directories but not containing __init__ as per python hardcoded convention.
+            Finder to get directories 'msg' & 'srv' containing ROS message and service files.
+            It need to be inserted in sys.path_hooks before FileFinder, since these are Directories
+            but not containing __init__ as per python (hardcoded) convention.
 
-            Note: There is a matching issue between msg/ folder and msg/My.msg on one side, and package, module, class concepts on the other.
-            Since a module is not callable, but we need to call My(data) to build a message class (ROS convention), we match the msg/ folder to a module (and not a package)
-            And to keep matching ROS conventions, a directory without __init__ or any message/service file, will become a namespace (sub)package.
+            Note: There is a matching issue between msg/ folder and msg/My.msg on one side,
+             and package, module, class concepts on the other.
+            Since a module is not callable, but we need to call My(data) to build a message class (ROS convention),
+             we match the msg/ folder to a module (and not a package)
+            And to keep matching ROS conventions, a directory without __init__ or any message/service file,
+            will become a namespace (sub)package.
 
             :param path_entry: the msg or srv directory path (no finder should have been instantiated yet)
             """
@@ -125,15 +132,50 @@ elif sys.version_info >= (3, 4):  # we do not support 3.2 and 3.3 (maybe we coul
                 ros_loaders.extend((suffix, loader) for suffix in suffixes)
             self._ros_loaders = ros_loaders
 
+            # We need to check that we will be able to find a module or package,
+            # or raise ImportError to allow other finders to be instantiated for this path.
+            # => the logic must correspond to find_module()
+            findable = False
+            for f in os.listdir(path):
+                findable = findable or (
+                    os.path.isdir(f) and
+                    any(  # we make sure we have at least a directory that :
+                        f == l.get_origin_subdir() and  # has the right name and
+                        [subf for subf in os.listdir(f) if subf.endswith(s)]  # contain at least one file with the right extension
+                        for s, l in self._ros_loaders
+                    )
+                )
+            # Note that testing for extensions of file in path is already too late here,
+            # since we generate the whole directory at one time, and each file is a class (not a module)
+
+            if not findable:
+                raise _ImportError("cannot find any matching module based on extensions {0} or origin subdirs {1} ".format(
+                    [s for s, _ in self._ros_loaders], [l.get_origin_subdir() for _, l in self._ros_loaders]),
+                    path=path
+                )
+                # This is needed to not override default behavior in path where there is NO ROS files/directories.
+
             # We rely on FileFinder and python loader to deal with our generated code
             super(ROSDirectoryFinder, self).__init__(
                 path,
-                (importlib_machinery.SourceFileLoader, ['.py']),
-                (importlib_machinery.SourcelessFileLoader, ['.pyc']),
+                # We do NOT need these here the meta hook will take care of switching to the original FileFinder for it.
+                # (importlib_machinery.SourceFileLoader, ['.py']),
+                # (importlib_machinery.SourcelessFileLoader, ['.pyc']),
             )
 
         def __repr__(self):
             return 'ROSDirectoryFinder({!r})'.format(self.path)
+
+        @classmethod
+        def path_hook(cls, *loader_details):
+            # Same as FileFinder in order to get a different method name for inspect & debug.
+            def rosimporter_path_hook(path):
+                """Path hook for ROSDirectoryFinder."""
+                if not os.path.isdir(path):
+                    raise _ImportError('only directories are supported', path=path)
+                return cls(path, *loader_details)
+
+            return rosimporter_path_hook
 
         def find_spec(self, fullname, target=None):
             """
@@ -162,14 +204,18 @@ elif sys.version_info >= (3, 4):  # we do not support 3.2 and 3.3 (maybe we coul
                     if rosdir == base_path:  # we found a message/service file in the hierarchy, that belong to our module
                         # Generate something !
                         loader = loader_class(fullname, base_path)
-                        # we are looking for submodules either in generated location (to be able to load generated python files) or in original msg location
-                        spec = importlib_util.spec_from_file_location(fullname, base_path, loader=loader, submodule_search_locations=[base_path, loader.get_gen_path()])
+                        # we are looking for submodules either in generated location
+                        # to be able to load generated python files) or in original msg location
+                        spec = importlib_util.spec_from_file_location(
+                            fullname,
+                            base_path,
+                            loader=loader,
+                            submodule_search_locations=[loader.get_gen_path()]
+                        )
                         # We DO NOT WANT TO add the generated dir in sys.path to use a python loader
                         # since the plan is to eventually not have to rely on files at all TODO
 
-            # Relying on FileFinder if we couldn't find any specific directory structure/content
-            # It will return a namespace spec if no file can be found
-            # or will return a proper loader for already generated python files
+            # Relying on FileFinder behavior if we couldn't find any specific directory structure/content
             spec = spec or super(ROSDirectoryFinder, self).find_spec(fullname, target=target)
             # we return None if we couldn't find a spec before
             return spec
@@ -182,7 +228,8 @@ else:
 MSG_SUFFIXES = ['.msg']
 SRV_SUFFIXES = ['.srv']
 
-def _get_supported_ros_loaders():
+
+def get_supported_ros_loaders():
     """Returns a list of file-based module loaders.
     Each item is a tuple (loader, suffixes).
     """
@@ -193,7 +240,7 @@ def _get_supported_ros_loaders():
 
 def _install():
     """Install the path-based import components."""
-    supported_loaders = _get_supported_ros_loaders()
+    supported_loaders = get_supported_ros_loaders()
     sys.path_hooks.extend([ROSDirectoryFinder.path_hook(*supported_loaders)])
     # TODO : sys.meta_path.append(DistroFinder)
 

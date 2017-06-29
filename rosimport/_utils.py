@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 import sys
 
+
 def _verbose_message(message, *args, **kwargs):
     """Print the message to stderr if -v/PYTHONVERBOSE is turned on."""
     verbosity = kwargs.pop('verbosity', 1)
@@ -10,15 +11,13 @@ def _verbose_message(message, *args, **kwargs):
             message = '# ' + message
         print(message.format(*args), file=sys.stderr)
 
-if (2, 7) <= sys.version_info < (3, 4):  # valid until which py3 version ?
-
-    try:
-        ImportError('msg', name='name', path='path')
-    except TypeError:
-        class _ImportError(ImportError):
-            def __init__(self, *args, **kwargs):
-                self.name = kwargs.pop('name', None)
-                self.path = kwargs.pop('path', None)
-                super(_ImportError, self).__init__(*args, **kwargs)
-    else:
-        _ImportError = ImportError
+try:
+    ImportError('msg', name='name', path='path')
+except TypeError:
+    class _ImportError(ImportError):
+        def __init__(self, *args, **kwargs):
+            self.name = kwargs.pop('name', None)
+            self.path = kwargs.pop('path', None)
+            super(_ImportError, self).__init__(*args, **kwargs)
+else:
+    _ImportError = ImportError

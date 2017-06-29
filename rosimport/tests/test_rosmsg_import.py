@@ -39,7 +39,7 @@ import unittest
 import importlib
 
 # Importing importer module
-from rosimport import rosmsg_finder
+from rosimport import rosmsg_finder, activate_hook_for, deactivate_hook_for
 
 # importlib
 # https://pymotw.com/3/importlib/index.html
@@ -51,22 +51,15 @@ from ._utils import print_importers
 
 class TestImportMsg(unittest.TestCase):
 
-    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps')
+    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps')
 
     @classmethod
     def setUpClass(cls):
-        # We need to be before FileFinder to be able to find our '.msg' and '.srv' files without making a namespace package
-        supported_loaders = rosmsg_finder._get_supported_ros_loaders()
-        ros_hook = rosmsg_finder.ROSDirectoryFinder.path_hook(*supported_loaders)
-        sys.path_hooks.insert(1, ros_hook)
-
-        sys.path.append(cls.rosdeps_path)
+        activate_hook_for(cls.rosdeps_path)
 
     @classmethod
     def tearDownClass(cls):
-        # CAREFUL : Even though we remove the path from sys.path,
-        # initialized finders will remain in sys.path_importer_cache
-        sys.path.remove(cls.rosdeps_path)
+        deactivate_hook_for(cls.rosdeps_path)
 
     def test_import_absolute_msg(self):
         print_importers()
@@ -105,7 +98,7 @@ class TestImportMsg(unittest.TestCase):
         self.assertTrue(test_msgs is not None)
         self.assertTrue(test_msgs.TestMsg is not None)
         self.assertTrue(callable(test_msgs.TestMsg))
-        self.assertTrue(test_msgs.TestMsg._type == 'pyros_msgs/TestMsg')  # careful between ros package name and python package name
+        self.assertTrue(test_msgs.TestMsg._type == 'rosimport/TestMsg')  # careful between ros package name and python package name
 
         # use it !
         self.assertTrue(test_msgs.TestMsg(test_bool=True, test_string='Test').test_bool)
@@ -118,7 +111,7 @@ class TestImportMsg(unittest.TestCase):
 
         self.assertTrue(TestMsg is not None)
         self.assertTrue(callable(TestMsg))
-        self.assertTrue(TestMsg._type == 'pyros_msgs/TestMsg')
+        self.assertTrue(TestMsg._type == 'rosimport/TestMsg')
 
         # use it !
         self.assertTrue(TestMsg(test_bool=True, test_string='Test').test_bool)
@@ -145,12 +138,12 @@ class TestImportMsg(unittest.TestCase):
 
 class TestImportSrv(unittest.TestCase):
 
-    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps', 'ros_comm_msgs')
+    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps', 'ros_comm_msgs')
 
     @classmethod
     def setUpClass(cls):
         # We need to be before FileFinder to be able to find our '.msg' and '.srv' files without making a namespace package
-        supported_loaders = rosmsg_finder._get_supported_ros_loaders()
+        supported_loaders = rosmsg_finder.get_supported_ros_loaders()
         ros_hook = rosmsg_finder.ROSDirectoryFinder.path_hook(*supported_loaders)
         sys.path_hooks.insert(1, ros_hook)
 
@@ -220,15 +213,15 @@ class TestImportSrv(unittest.TestCase):
 
         self.assertTrue(test_srvs.TestSrv is not None)
         self.assertTrue(callable(test_srvs.TestSrv))
-        self.assertTrue(test_srvs.TestSrv._type == 'pyros_msgs/TestSrv')  # careful between ros package name and python package name
+        self.assertTrue(test_srvs.TestSrv._type == 'rosimport/TestSrv')  # careful between ros package name and python package name
 
         self.assertTrue(test_srvs.TestSrvRequest is not None)
         self.assertTrue(callable(test_srvs.TestSrvRequest))
-        self.assertTrue(test_srvs.TestSrvRequest._type == 'pyros_msgs/TestSrvRequest')  # careful between ros package name and python package name
+        self.assertTrue(test_srvs.TestSrvRequest._type == 'rosimport/TestSrvRequest')  # careful between ros package name and python package name
 
         self.assertTrue(test_srvs.TestSrvResponse is not None)
         self.assertTrue(callable(test_srvs.TestSrvResponse))
-        self.assertTrue(test_srvs.TestSrvResponse._type == 'pyros_msgs/TestSrvResponse')  # careful between ros package name and python package name
+        self.assertTrue(test_srvs.TestSrvResponse._type == 'rosimport/TestSrvResponse')  # careful between ros package name and python package name
 
         # use it !
         self.assertTrue(test_srvs.TestSrvRequest(test_request='Test').test_request)
@@ -242,15 +235,15 @@ class TestImportSrv(unittest.TestCase):
 
         self.assertTrue(TestSrv is not None)
         self.assertTrue(callable(TestSrv))
-        self.assertTrue(TestSrv._type == 'pyros_msgs/TestSrv')  # careful between ros package name and python package name
+        self.assertTrue(TestSrv._type == 'rosimport/TestSrv')  # careful between ros package name and python package name
 
         self.assertTrue(TestSrvRequest is not None)
         self.assertTrue(callable(TestSrvRequest))
-        self.assertTrue(TestSrvRequest._type == 'pyros_msgs/TestSrvRequest')
+        self.assertTrue(TestSrvRequest._type == 'rosimport/TestSrvRequest')
 
         self.assertTrue(TestSrvResponse is not None)
         self.assertTrue(callable(TestSrvResponse))
-        self.assertTrue(TestSrvResponse._type == 'pyros_msgs/TestSrvResponse')
+        self.assertTrue(TestSrvResponse._type == 'rosimport/TestSrvResponse')
 
         # use it !
         self.assertTrue(TestSrvRequest(test_request='Test').test_request)
