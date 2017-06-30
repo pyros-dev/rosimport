@@ -8,7 +8,7 @@ import tempfile
 import shutil
 
 
-from rosimport import rosmsg_generator
+from rosimport import genmsg_py, gensrv_py
 
 """
 A module to setup custom importer for .msg and .srv files
@@ -52,63 +52,6 @@ def RosLoader(rosdef_extension):
     else:
         raise ImportError("ros_loader : Unsupported python version")
 
-
-    # class ROSDefLoader(FileLoader):
-    #
-    #     def __init__(self, fullname, path):
-    #
-    #
-    #
-    #         if os.path.isdir(path):
-    #             if path.endswith(loader_origin_subdir) and any([f.endswith(loader_file_extension) for f in os.listdir(path)]):  # if we get a non empty 'msg' folder
-    #                 init_path = os.path.join(self.outdir_pkg, loader_generated_subdir, '__init__.py')
-    #                 if not os.path.exists(init_path):
-    #                     # TODO : we need to determine that from the loader
-    #                     # as a minimum we need to add current package
-    #                     self.includepath = [self.rospackage + ':' + path]  # TODO :maybe keep a list of all messages we have imported (sys.rosmessages)
-    #
-    #                     # TODO : unify this after reviewing rosmsg_generator API
-    #                     if loader_file_extension == '.msg':
-    #                         # TODO : dynamic in memory generation (we do not need the file ultimately...)
-    #                         self.gen_msgs = rosmsg_generator.genmsg_py(
-    #                             msg_files=[os.path.join(path, f) for f in os.listdir(path)],  # every file not ending in '.msg' will be ignored
-    #                             package=self.rospackage,
-    #                             outdir_pkg=self.outdir_pkg,
-    #                             includepath=self.includepath,
-    #                             initpy=True  # we always create an __init__.py when called from here.
-    #                         )
-    #                         init_path = None
-    #                         for pyf in self.gen_msgs:
-    #                             if pyf.endswith('__init__.py'):
-    #                                 init_path = pyf
-    #                     elif loader_file_extension == '.srv':
-    #                         # TODO : dynamic in memory generation (we do not need the file ultimately...)
-    #                         self.gen_msgs = rosmsg_generator.gensrv_py(
-    #                             srv_files=[os.path.join(path, f) for f in os.listdir(path)],
-    #                             # every file not ending in '.msg' will be ignored
-    #                             package=self.rospackage,
-    #                             outdir_pkg=self.outdir_pkg,
-    #                             includepath=self.includepath,
-    #                             initpy=True  # we always create an __init__.py when called from here.
-    #                         )
-    #                         init_path = None
-    #                         for pyf in self.gen_msgs:
-    #                             if pyf.endswith('__init__.py'):
-    #                                 init_path = pyf
-    #                     else:
-    #                         raise RuntimeError(
-    #                             "RosDefLoader for a format {0} other than .msg or .srv is not supported".format(
-    #                                 rosdef_extension))
-    #
-    #                 if not init_path:
-    #                     raise ImportError("__init__.py file not found".format(init_path))
-    #                 if not os.path.exists(init_path):
-    #                     raise ImportError("{0} file not found".format(init_path))
-    #
-    #                 # relying on usual source file loader since we have generated normal python code
-    #                 # BUT we need to pass the directory path (not the init file path like for python3)
-    #                 super(ROSDefLoader, self).__init__(fullname, os.path.dirname(init_path))
-
     class ROSDefLoader(FileLoader):
         def __init__(self, fullname, path):
 
@@ -140,7 +83,7 @@ def RosLoader(rosdef_extension):
                         # TODO : unify this after reviewing rosmsg_generator API
                         if loader_file_extension == '.msg':
                             # TODO : dynamic in memory generation (we do not need the file ultimately...)
-                            self.gen_msgs = rosmsg_generator.genmsg_py(
+                            self.gen_msgs = genmsg_py(
                                 msg_files=[os.path.join(path, f) for f in os.listdir(path)],  # every file not ending in '.msg' will be ignored
                                 package=self.rospackage,
                                 outdir_pkg=self.outdir_pkg,
@@ -153,7 +96,7 @@ def RosLoader(rosdef_extension):
                                     init_path = pyf
                         elif loader_file_extension == '.srv':
                             # TODO : dynamic in memory generation (we do not need the file ultimately...)
-                            self.gen_msgs = rosmsg_generator.gensrv_py(
+                            self.gen_msgs = gensrv_py(
                                 srv_files=[os.path.join(path, f) for f in os.listdir(path)],
                                 # every file not ending in '.msg' will be ignored
                                 package=self.rospackage,

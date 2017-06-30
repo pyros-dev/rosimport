@@ -4,7 +4,7 @@ import contextlib
 import importlib
 import site
 
-from rosimport import rosmsg_loader
+from rosimport import ROSMsgLoader, ROSSrvLoader
 
 """
 A module to setup custom importer for .msg and .srv files
@@ -24,7 +24,6 @@ import sys
 import logging
 
 from ._utils import _ImportError, _verbose_message
-from .rosmsg_loader import ROSMsgLoader, ROSSrvLoader
 
 
 class ROSDirectoryFinder(object):
@@ -92,38 +91,6 @@ class ROSDirectoryFinder(object):
             return cls(path, *loader_details)
 
         return rosimporter_path_hook
-
-    # def find_module(self, fullname, path=None):
-    #     path = path or self.path
-    #     tail_module = fullname.rpartition('.')[2]
-    #     loader = None
-    #
-    #     base_path = os.path.join(path, tail_module)
-    #     # special code here since FileFinder expect a "__init__" that we don't need for msg or srv.
-    #     if os.path.isdir(base_path):
-    #         loader_class = None
-    #         rosdir = None
-    #         # Figuring out if we should care about this directory at all
-    #         for root, dirs, files in os.walk(base_path):
-    #             for suffix, loader_cls in self._ros_loaders:
-    #                 if any(f.endswith(suffix) for f in files):
-    #                     loader_class = loader_cls
-    #                     rosdir = root
-    #         if loader_class and rosdir and rosdir == base_path:
-    #             # we found a message/service file in the hierarchy, that belong to our module
-    #             # Generate something !
-    #             # we are looking for submodules either in generated location
-    #             # to be able to load generated python files) or in original msg location
-    #             loader = loader_class(fullname, base_path)
-    #             # We DO NOT WANT TO add the generated dir in sys.path to use a python loader
-    #             # since the plan is to eventually not have to rely on files at all TODO
-    #
-    #     # if we couldn't build a loader before we forward the call to our parent FileFinder2
-    #     # useful for implicit namespace packages
-    #     # loader = loader or super(ROSDirectoryFinder, self).find_module(fullname, path)
-    #     # If we couldnt find any loader before, we return None
-    #     return loader
-    #
 
     def build_spec_loader(self, fullname, base_path, loader_class):
         # we are looking for submodules either in generated location

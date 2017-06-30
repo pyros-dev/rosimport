@@ -35,7 +35,7 @@ import unittest
 import importlib
 
 # Importing importer module
-from rosimport import rosmsg_finder, activate_hook_for, deactivate_hook_for
+from rosimport import activate_hook_for, deactivate_hook_for
 
 # importlib
 # https://pymotw.com/3/importlib/index.html

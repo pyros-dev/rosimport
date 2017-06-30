@@ -2,12 +2,17 @@ from __future__ import absolute_import
 
 import sys
 
-from .rosmsg_generator import (
+from ._ros_generator import (
     MsgDependencyNotFound,
-    generate_msgsrv_nspkg
+    generate_msgsrv_nspkg,
+    genmsg_py,
+    gensrv_py,
+    import_msgsrv,
 )
 
-from .rosmsg_finder import get_supported_ros_loaders
+from ._rosdef_loader import ROSMsgLoader, ROSSrvLoader
+
+from ._ros_directory_finder import get_supported_ros_loaders
 
 
 # Making the activation explicit for now
@@ -19,8 +24,8 @@ def activate_hook_for(*paths):
         filefinder2.activate()
 
     # We need to be before FileFinder to be able to find our '.msg' and '.srv' files without making a namespace package
-    supported_loaders = rosmsg_finder.get_supported_ros_loaders()
-    ros_hook = rosmsg_finder.ROSDirectoryFinder.path_hook(*supported_loaders)
+    supported_loaders = _ros_directory_finder.get_supported_ros_loaders()
+    ros_hook = _ros_directory_finder.ROSDirectoryFinder.path_hook(*supported_loaders)
     if sys.version_info < (3, 4):
         # Note this must be early in the list (before filefinder2),
         # since we change the logic regarding what is a package or not
@@ -51,4 +56,11 @@ def deactivate_hook_for(*paths):
 __all__ = [
     'MsgDependencyNotFound',
     'generate_msgsrv_nspkg',
+    'ROSMsgLoader',
+    'ROSSrvLoader',
+    'genmsg_py',
+    'gensrv_py',
+    'import_msgsrv',
+    'activate_hook_for',
+    'deactivate_hook_for',
 ]
