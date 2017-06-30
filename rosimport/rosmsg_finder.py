@@ -27,12 +27,8 @@ from ._utils import _ImportError, _verbose_message
 from .rosmsg_loader import ROSMsgLoader, ROSSrvLoader
 
 if (2, 7) <= sys.version_info < (3, 4):  # valid until which py3 version ?
-    # from .importlib2 import machinery as importlib_machinery
-    # from .importlib2 import util as importlib_util
-    import pkg_resources  # useful to have empty directory imply namespace package (like for py3)
-    import filefinder2
 
-    class ROSDirectoryFinder(filefinder2.FileFinder2):
+    class ROSDirectoryFinder(object):
         """Finder to interpret directories as modules, and files as classes"""
 
         def __init__(self, path, *ros_loader_details):
@@ -52,11 +48,39 @@ if (2, 7) <= sys.version_info < (3, 4):  # valid until which py3 version ?
                 ros_loaders.extend((suffix, loader) for suffix in suffixes)
             self._ros_loaders = ros_loaders
 
+            # We need to check that we will be able to find a module or package,
+            # or raise ImportError to allow other finders to be instantiated for this path.
+            # => the logic must correspond to find_module()
+            findable = False
+            for f in os.listdir(path):
+                findable = findable or (
+                    os.path.isdir(os.path.join(path, f)) and
+                    any(  # we make sure we have at least a directory that :
+                        f == l.get_origin_subdir() and  # has the right name and
+                        [subf for subf in os.listdir(os.path.join(path, f)) if subf.endswith(s)]
+                        # contain at least one file with the right extension
+                        for s, l in self._ros_loaders
+                    )
+                )
+            # Note that testing for extensions of file in path is already too late here,
+            # since we generate the whole directory at one time, and each file is a class (not a module)
+
+            if not findable:
+                raise _ImportError(
+                    "cannot find any matching module based on extensions {0} or origin subdirs {1} ".format(
+                        [s for s, _ in self._ros_loaders], [l.get_origin_subdir() for _, l in self._ros_loaders]),
+                    path=path
+                )
+                # This is needed to not override default behavior in path where there is NO ROS files/directories.
+
+            self.path = path or '.'
+
             # We rely on FileFinder and python loader to deal with our generated code
-            super(ROSDirectoryFinder, self).__init__(
-                path,
-                *filefinder2.get_supported_ns_loaders()
-            )
+            # super(ROSDirectoryFinder, self).__init__(
+            #     path,
+            #     # We do NOT need these here the meta hook will take care of switching to the original FileFinder for it.
+            #     # *filefinder2.get_supported_ns_loaders()
+            # )
 
         def __repr__(self):
             return 'ROSDirectoryFinder({!r})'.format(self.path)
@@ -88,7 +112,7 @@ if (2, 7) <= sys.version_info < (3, 4):  # valid until which py3 version ?
 
             # if we couldn't build a loader before we forward the call to our parent FileFinder2
             # useful for implicit namespace packages
-            loader = loader or super(ROSDirectoryFinder, self).find_module(fullname, path)
+            # loader = loader or super(ROSDirectoryFinder, self).find_module(fullname, path)
             # If we couldnt find any loader before, we return None
             return loader
 
@@ -108,7 +132,7 @@ elif sys.version_info >= (3, 4):  # we do not support 3.2 and 3.3 (maybe we coul
     import importlib.util as importlib_util
 
 
-    class ROSDirectoryFinder(importlib_machinery.FileFinder):
+    class ROSDirectoryFinder(object):
         """Finder to interpret directories as modules, and files as classes"""
 
         def __init__(self, path, *ros_loader_details):
@@ -155,13 +179,15 @@ elif sys.version_info >= (3, 4):  # we do not support 3.2 and 3.3 (maybe we coul
                 )
                 # This is needed to not override default behavior in path where there is NO ROS files/directories.
 
-            # We rely on FileFinder and python loader to deal with our generated code
-            super(ROSDirectoryFinder, self).__init__(
-                path,
-                # We do NOT need these here the meta hook will take care of switching to the original FileFinder for it.
-                # (importlib_machinery.SourceFileLoader, ['.py']),
-                # (importlib_machinery.SourcelessFileLoader, ['.pyc']),
-            )
+            self.path = path or '.'
+
+            # # We rely on FileFinder and python loader to deal with our generated code
+            # super(ROSDirectoryFinder, self).__init__(
+            #     path,
+            #     # We do NOT need these here the meta hook will take care of switching to the original FileFinder for it.
+            #     # (importlib_machinery.SourceFileLoader, ['.py']),
+            #     # (importlib_machinery.SourcelessFileLoader, ['.pyc']),
+            # )
 
         def __repr__(self):
             return 'ROSDirectoryFinder({!r})'.format(self.path)
@@ -216,7 +242,7 @@ elif sys.version_info >= (3, 4):  # we do not support 3.2 and 3.3 (maybe we coul
                         # since the plan is to eventually not have to rely on files at all TODO
 
             # Relying on FileFinder behavior if we couldn't find any specific directory structure/content
-            spec = spec or super(ROSDirectoryFinder, self).find_spec(fullname, target=target)
+            # spec = spec or super(ROSDirectoryFinder, self).find_spec(fullname, target=target)
             # we return None if we couldn't find a spec before
             return spec
 

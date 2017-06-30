@@ -22,9 +22,10 @@ def activate_hook_for(*paths):
     supported_loaders = rosmsg_finder.get_supported_ros_loaders()
     ros_hook = rosmsg_finder.ROSDirectoryFinder.path_hook(*supported_loaders)
     if sys.version_info < (3, 4):
-        # Note this must be early in the list, since we change the logic regarding what is a package or not
-        # sys.path_hooks.insert(1, ros_hook)
-        sys.path_hooks.append(ros_hook)
+        # Note this must be early in the list (before filefinder2),
+        # since we change the logic regarding what is a package or not
+        sys.path_hooks.insert(1, ros_hook)
+        # sys.path_hooks.append(ros_hook)
     else:
         # Note this must be early in the path_hook list, since we change the logic
         # and a namespace package becomes a ros importable package.
