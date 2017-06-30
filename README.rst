@@ -17,8 +17,8 @@ ROS message definitions python importer
     :alt: Travis-CI Build Status
     :target: https://travis-ci.org/asmodehn/rosimport
 
-.. |quantifiedcode| image:: https://www.quantifiedcode.com/api/v1/project/4f2bfe51459c4e5487e3dfaae5bff2de/badge.svg
-    :target: https://www.quantifiedcode.com/app/project/4f2bfe51459c4e5487e3dfaae5bff2de
+.. |quantifiedcode| image:: https://www.quantifiedcode.com/api/v1/project/4d473ef2517041c4adc1214c88e4abae/badge.svg
+    :target: https://www.quantifiedcode.com/app/project/4d473ef2517041c4adc1214c88e4abae
     :alt: Code issues
 
 .. |requires| image:: https://requires.io/github/asmodehn/rosimport/requirements.svg?branch=master
@@ -57,10 +57,11 @@ Usage:
 ::
 
     import sys
-    import filefinder2
-    if (2, 7) <= sys.version_info < (3, 4):
-        filefinder2.activate()
+    import rosimport
+    rosimport.activate()
 
-    import namespace.package
+    import my_msgs.msg  # directly from a my_msgs/msg directory containing My.msg ros definition
+    # Or relatively :
+    from . import msg
 
 
