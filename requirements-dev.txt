@@ -1,2 +1,5 @@
 gitchangelog
 twine
+
+# source access to latest filefinder from git ...
+-e git+https://github.com/asmodehn/filefinder2.git#egg=filefinder2
