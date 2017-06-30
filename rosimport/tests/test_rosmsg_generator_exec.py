@@ -11,11 +11,11 @@ import runpy
 # Including generator module directly from code to be able to generate our message classes
 # import imp
 # rosmsg_generator = imp.load_source('rosmsg_generator', os.path.join(os.path.dirname(os.path.dirname(__file__)), 'rosmsg_generator.py'))
-from rosimport import rosmsg_generator
+from rosimport import generate_msgsrv_nspkg, import_msgsrv
 
 def test_generate_msgsrv_nspkg_usable():
     # generating message class
-    sitedir, generated_msg, generated_srv = rosmsg_generator.generate_msgsrv_nspkg(
+    sitedir, generated_msg, generated_srv = generate_msgsrv_nspkg(
         [os.path.join(os.path.dirname(__file__), 'msg', 'TestMsg.msg')],
         package='test_gen_msgs',
         ns_pkg=True,
@@ -27,7 +27,7 @@ def test_generate_msgsrv_nspkg_usable():
         gen_file = os.path.join(sitedir, *m.split("."))
         assert os.path.exists(gen_file + '.py') or os.path.exists(os.path.join(gen_file, '__init__.py'))
 
-        msg_mod, srv_mod = rosmsg_generator.import_msgsrv(sitedir, generated_msg, generated_srv)
+        msg_mod, srv_mod = import_msgsrv(sitedir, generated_msg, generated_srv)
 
         assert msg_mod is not None
         assert srv_mod is not None
@@ -53,7 +53,7 @@ def test_generate_msgsrv_nspkg_usable():
 
 def test_generate_msgsrv_genpkg_usable():
     # generating message class
-    sitedir, generated_msg, generated_srv = rosmsg_generator.generate_msgsrv_nspkg(
+    sitedir, generated_msg, generated_srv = generate_msgsrv_nspkg(
         [os.path.join(os.path.dirname(__file__), 'msg', 'TestMsg.msg')],
         package='test_gen_msgs',
     )
@@ -64,7 +64,7 @@ def test_generate_msgsrv_genpkg_usable():
         gen_file = os.path.join(sitedir, *m.split("."))
         assert os.path.exists(gen_file + '.py') or os.path.exists(os.path.join(gen_file, '__init__.py'))
 
-        msg_mod, srv_mod = rosmsg_generator.import_msgsrv(sitedir, generated_msg, generated_srv)
+        msg_mod, srv_mod = import_msgsrv(sitedir, generated_msg, generated_srv)
 
         assert msg_mod is not None
         assert srv_mod is not None

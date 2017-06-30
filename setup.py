@@ -42,7 +42,7 @@ class PrepareReleaseCommand(setuptools.Command):
         # $ gitchangelog >CHANGELOG.rst
         # change version in code and changelog
         subprocess.check_call(
-            "git commit CHANGELOG.rst filefinder2/_version.py -m 'v{0}'".format(__version__), shell=True)
+            "git commit CHANGELOG.rst rosimport/_version.py -m 'v{0}'".format(__version__), shell=True)
         subprocess.check_call("git push", shell=True)
 
         print("You should verify travis checks, and you can publish this release with :")
@@ -53,7 +53,7 @@ class PrepareReleaseCommand(setuptools.Command):
 # Ref setup.py command extension : https://blog.niteoweb.com/setuptools-run-custom-code-in-setup-py/
 class PublishCommand(setuptools.Command):
     """Command to release this package to Pypi"""
-    description = "releases filefinder2 to Pypi"
+    description = "releases rosimport to Pypi"
     user_options = []
 
     def initialize_options(self):
@@ -96,6 +96,7 @@ setuptools.setup(name='rosimport',
     # Reference for optional dependencies :
     # http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources
     install_requires=[
+        'filefinder2>=0.2; python_version<"3.4"',
         # this is needed as install dependency since we embed tests in the package.
         'pytest>=2.5.1',
         'pytest-xdist',  # for --boxed (careful with the version it will be moved out of xdist)

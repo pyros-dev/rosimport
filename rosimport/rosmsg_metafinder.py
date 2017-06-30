@@ -4,7 +4,7 @@ import contextlib
 import importlib
 import site
 
-from pyros_msgs.importer import rosmsg_generator
+from rosimport import rosmsg_generator
 
 """
 A module to setup custom importer for .msg and .srv files

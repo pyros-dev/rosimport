@@ -11,7 +11,7 @@ import time
 import pkg_resources
 
 """
-Module that can be used standalone, or as part of the pyros_msgs.importer package
+Module that can be used standalone, or as part of the rosimport package
 
 It provides a set of functions to generate your ros messages, even when ROS is not installed on your system.
 You might however need to have dependent messages definitions reachable by rospack somewhere.
