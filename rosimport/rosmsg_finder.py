@@ -138,10 +138,10 @@ elif sys.version_info >= (3, 4):  # we do not support 3.2 and 3.3 (maybe we coul
             findable = False
             for f in os.listdir(path):
                 findable = findable or (
-                    os.path.isdir(f) and
+                    os.path.isdir(os.path.join(path, f)) and
                     any(  # we make sure we have at least a directory that :
                         f == l.get_origin_subdir() and  # has the right name and
-                        [subf for subf in os.listdir(f) if subf.endswith(s)]  # contain at least one file with the right extension
+                        [subf for subf in os.listdir(os.path.join(path, f)) if subf.endswith(s)]  # contain at least one file with the right extension
                         for s, l in self._ros_loaders
                     )
                 )
