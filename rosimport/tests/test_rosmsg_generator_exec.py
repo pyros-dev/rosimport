@@ -1,70 +1,154 @@
 from __future__ import absolute_import, division, print_function
 
+import unittest
+
 """
 Testing executing rosmsg_generator directly (like setup.py would)
 """
 
 import os
+import sys
 import runpy
+import pkg_resources
+import importlib
+import site
 
-# Ref : http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
-# Including generator module directly from code to be able to generate our message classes
-# import imp
-# rosmsg_generator = imp.load_source('rosmsg_generator', os.path.join(os.path.dirname(os.path.dirname(__file__)), 'rosmsg_generator.py'))
-from rosimport import generate_msgsrv_nspkg, import_msgsrv
+from rosimport import generate_msgpkg, generate_srvpkg, ros_search_path, activate_hook_for, deactivate_hook_for
 
-def test_generate_msgsrv_nspkg_usable():
-    # generating message class
-    sitedir, generated_msg, generated_srv = generate_msgsrv_nspkg(
-        [os.path.join(os.path.dirname(__file__), 'msg', 'TestMsg.msg')],
-        package='test_gen_msgs',
-        ns_pkg=True,
-    )
+if (2, 7) <= sys.version_info < (3, 4):
+    import filefinder2
+    filefinder2.activate()
 
-    # Verify that files exists and are importable
-    for m in [generated_msg, generated_srv]:
-        # modules are generated where the file is launched
-        gen_file = os.path.join(sitedir, *m.split("."))
-        assert os.path.exists(gen_file + '.py') or os.path.exists(os.path.join(gen_file, '__init__.py'))
 
-        msg_mod, srv_mod = import_msgsrv(sitedir, generated_msg, generated_srv)
+class TestImportBasicMsg(unittest.TestCase):
 
-        assert msg_mod is not None
-        assert srv_mod is not None
+    def test_generate_msgpkg_usable(self):
+        """ Testing our generated msg package is importable.
+        Note this test require filefinder2 on python2 for passing."""
+        # generating message class
+        sitedir, generated_msg = generate_msgpkg(
+            [os.path.join(os.path.dirname(__file__), 'msg', 'TestMsg.msg')],
+            package='test_gen_msgs',
+        )
 
-# def test_generate_msgsrv_samepkg_usable():
-#     # generating message class
-#     sitedir, generated_msg, generated_srv = rosmsg_generator.generate_msgsrv_nspkg(
-#         [os.path.join(os.path.dirname(__file__), 'msg', 'TestMsg.msg')],
-#         package='test_gen_msgs',
-#         ns_pkg=True,
-#     )
-#
-#     # Verify that files exists and are importable
-#     for m in [generated_msg, generated_srv]:
-#         # modules are generated where the file is launched
-#         gen_file = os.path.join(sitedir, *m.split("."))
-#         assert os.path.exists(gen_file + '.py') or os.path.exists(os.path.join(gen_file, '__init__.py'))
-#
-#         msg_mod, srv_mod = rosmsg_generator.import_msgsrv(sitedir, generated_msg, generated_srv)
-#
-#         assert msg_mod is not None
-#         assert srv_mod is not None
+        site.addsitedir(sitedir)  # we add our output dir as a site (to be able to import from it as usual)
+        # because we modify sys.path, we also need to handle namespace packages
+        # pkg_resources.fixup_namespace_packages(sitedir) # OR NOT ?
 
-def test_generate_msgsrv_genpkg_usable():
-    # generating message class
-    sitedir, generated_msg, generated_srv = generate_msgsrv_nspkg(
-        [os.path.join(os.path.dirname(__file__), 'msg', 'TestMsg.msg')],
-        package='test_gen_msgs',
-    )
+        # Verify that files exists and are importable
+        for m in [generated_msg]:
+            # modules are generated where the file is launched
+            gen_file = os.path.join(sitedir, *m.split("."))
+            assert os.path.exists(gen_file + '.py') or os.path.exists(os.path.join(gen_file, '__init__.py'))
 
-    # Verify that files exists and are importable
-    for m in [generated_msg, generated_srv]:
-        # modules are generated where the file is launched
-        gen_file = os.path.join(sitedir, *m.split("."))
-        assert os.path.exists(gen_file + '.py') or os.path.exists(os.path.join(gen_file, '__init__.py'))
+            msgs_mod = importlib.import_module(m)
+            assert msgs_mod is not None
+            assert hasattr(msgs_mod, 'TestMsg')
+            assert msgs_mod.TestMsg._type == 'test_gen_msgs/TestMsg'
 
-        msg_mod, srv_mod = import_msgsrv(sitedir, generated_msg, generated_srv)
+    def test_generate_srvpkg_usable(self):
+        """ Testing our generated srv package is importable.
+        Note this test require filefinder2 on python2 for passing."""
+        # generating message class
+        sitedir, generated_srv = generate_srvpkg(
+            [os.path.join(os.path.dirname(__file__), 'srv', 'TestSrv.srv')],
+            package='test_gen_srvs',
+        )
 
-        assert msg_mod is not None
-        assert srv_mod is not None
+        site.addsitedir(sitedir)  # we add our output dir as a site (to be able to import from it as usual)
+        # because we modify sys.path, we also need to handle namespace packages
+        # pkg_resources.fixup_namespace_packages(sitedir) # OR NOT ?
+
+        # Verify that files exists and are importable
+        for s in [generated_srv]:
+            # modules are generated where the file is launched
+            gen_file = os.path.join(sitedir, *s.split("."))
+            assert os.path.exists(gen_file + '.py') or os.path.exists(os.path.join(gen_file, '__init__.py'))
+
+            msgs_mod = importlib.import_module(s)
+            assert msgs_mod is not None
+            assert hasattr(msgs_mod, 'TestSrv')
+            assert msgs_mod.TestSrv._type == 'test_gen_srvs/TestSrv'
+
+            assert hasattr(msgs_mod, 'TestSrvRequest')
+            assert msgs_mod.TestSrvRequest._type == 'test_gen_srvs/TestSrvRequest'
+
+            assert hasattr(msgs_mod, 'TestSrvResponse')
+            assert msgs_mod.TestSrvResponse._type == 'test_gen_srvs/TestSrvResponse'
+
+
+class TestGenerateWithDeps(unittest.TestCase):
+
+    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps')
+
+    @classmethod
+    def setUpClass(cls):
+        activate_hook_for(cls.rosdeps_path)
+
+    @classmethod
+    def tearDownClass(cls):
+        deactivate_hook_for(cls.rosdeps_path)
+
+    def test_generate_msgpkg_deps_usable(self):
+        """ Testing our generated msg package is importable.
+        Note this test require filefinder2 on python2 for passing.
+        We also depend on import feature here, since we need a message module
+        to be able to import from another message module for dependencies,
+        so the generation of the message cannot be independent from the import system."""
+
+        # generating message class
+        sitedir, generated_msg = generate_msgpkg(
+            [os.path.join(os.path.dirname(__file__), 'msg', 'TestMsgDeps.msg')],
+            package='test_gen_msgs_deps',  # Note we need a different name to avoid being messed up with modules cache
+        )
+
+        site.addsitedir(sitedir)  # we add our output dir as a site (to be able to import from it as usual)
+        # because we modify sys.path, we also need to handle namespace packages
+        # pkg_resources.fixup_namespace_packages(sitedir) # OR NOT ?
+
+        # Verify that files exists and are importable
+        for m in [generated_msg]:
+            # modules are generated where the file is launched
+            gen_file = os.path.join(sitedir, *m.split("."))
+            assert os.path.exists(gen_file + '.py') or os.path.exists(os.path.join(gen_file, '__init__.py'))
+
+            msgs_mod = importlib.import_module(m)
+            assert msgs_mod is not None
+            assert hasattr(msgs_mod, 'TestMsgDeps')
+            assert msgs_mod.TestMsgDeps._type == 'test_gen_msgs_deps/TestMsgDeps'
+
+    def test_generate_srvpkg_deps_usable(self):
+        """ Testing our generated srv package is importable.
+        Note this test require filefinder2 on python2 for passing.
+        We also depend on import feature here, since we need a message module
+        to be able to import from another message module for dependencies,
+        so the generation of the message cannot be independent from the import system."""
+
+        # generating message class
+        sitedir, generated_srv = generate_srvpkg(
+            [os.path.join(os.path.dirname(__file__), 'srv', 'TestSrvDeps.srv')],
+            package='test_gen_srvs_deps',  # Note we need a different name to avoid being messed up with modules cache
+        )
+
+        site.addsitedir(sitedir)  # we add our output dir as a site (to be able to import from it as usual)
+        # because we modify sys.path, we also need to handle namespace packages
+        # pkg_resources.fixup_namespace_packages(sitedir) # OR NOT ?
+
+        # Verify that files exists and are importable
+        for s in [generated_srv]:
+            # modules are generated where the file is launched
+            gen_file = os.path.join(sitedir, *s.split("."))
+            assert os.path.exists(gen_file + '.py') or os.path.exists(os.path.join(gen_file, '__init__.py'))
+
+            srvs_mod = importlib.import_module(s)
+            assert srvs_mod is not None
+            assert hasattr(srvs_mod, 'TestSrvDeps')
+            assert srvs_mod.TestSrvDeps._type == 'test_gen_srvs_deps/TestSrvDeps'
+
+            assert hasattr(srvs_mod, 'TestSrvDepsRequest')
+            assert srvs_mod.TestSrvDepsRequest._type == 'test_gen_srvs_deps/TestSrvDepsRequest'
+
+            assert hasattr(srvs_mod, 'TestSrvDepsResponse')
+            assert srvs_mod.TestSrvDepsResponse._type == 'test_gen_srvs_deps/TestSrvDepsResponse'
+
+

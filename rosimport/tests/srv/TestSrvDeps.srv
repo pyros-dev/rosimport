@@ -1,0 +1,5 @@
+string test_request
+---
+bool test_response
+# also dependent fields to test that they get generated properly
+std_msgs/Bool test_std_bool

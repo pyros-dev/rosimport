@@ -4,15 +4,17 @@ import sys
 
 from ._ros_generator import (
     MsgDependencyNotFound,
-    generate_msgsrv_nspkg,
+    generate_msgpkg,
+    generate_srvpkg,
     genmsg_py,
     gensrv_py,
-    import_msgsrv,
 )
 
 from ._rosdef_loader import ROSMsgLoader, ROSSrvLoader
 
 from ._ros_directory_finder import get_supported_ros_loaders
+
+from ._ros_generator import ros_search_path
 
 
 # Making the activation explicit for now
@@ -44,6 +46,7 @@ def activate_hook_for(*paths):
     # since we need to replace the default importer.
     sys.path_importer_cache.clear()
 
+    # TODO : extend with os.environ['ROS_PACKAGE_PATH'] ??
     sys.path.extend(paths)
 
 
@@ -60,7 +63,6 @@ __all__ = [
     'ROSSrvLoader',
     'genmsg_py',
     'gensrv_py',
-    'import_msgsrv',
     'activate_hook_for',
     'deactivate_hook_for',
 ]

@@ -8,6 +8,7 @@ import importlib
 
 import time
 
+import collections
 import pkg_resources
 
 """
@@ -57,6 +58,50 @@ class PkgAlreadyExists(Exception):
     pass
 
 
+# Class to allow dynamic search of packages
+class RosSearchPath(dict):
+    def __init__(self, **ros_package_paths):
+        # we use the default ROS_PACKAGE_PATH if setup in environment
+        package_paths = {}  # TODO : os.environ.get('ROS_PACKAGE_PATH', {})
+        # we add any extra path
+        package_paths.update(ros_package_paths)
+        super(RosSearchPath, self).__init__(package_paths)
+
+    def try_import(self, item):
+        try:
+            mod = importlib.import_module(item)
+            # import succeeded : we should get the namespace path that has '/msg'
+            # and add it to the list of paths to avoid going through this all over again...
+            for p in mod.__path__:
+                # Note we want dependencies here. dependencies are ALWAYS '.msg' files in 'msg' directory.
+                msg_path = os.path.join(p, genmsg.MSG_DIR)
+                # We add a path only if we can find the 'mg' directory
+                self[item] = self.get(item, []) + ([msg_path] if os.path.exists(msg_path) else [])
+            return mod
+        except ImportError:
+            # import failed
+            return None
+
+    def __contains__(self, item):
+        """ True if D has a key k, else False. """
+        has = super(RosSearchPath, self).__contains__(item)
+        if not has:  # attempt importing. solving ROS path setup problem with python import paths setup.
+            self.try_import(item)
+        # try again (might work now)
+        return super(RosSearchPath, self).__contains__(item)
+
+    def __getitem__(self, item):
+        """ x.__getitem__(y) <==> x[y] """
+        got = super(RosSearchPath, self).get(item)
+        if got is None:
+            # attempt discovery by relying on python core import feature.
+            self.try_import(item)
+        return super(RosSearchPath, self).get(item)
+
+# singleton instance, to keep used ros package paths in cache
+ros_search_path = RosSearchPath()
+
+
 def genros_py(rosfiles, generator, package, outdir, includepath=None):
     includepath = includepath or []
 
@@ -71,7 +116,10 @@ def genros_py(rosfiles, generator, package, outdir, includepath=None):
                 raise
     # TODO : maybe we dont need this, and that translation should be handled before ?
     search_path = genmsg.command_line.includepath_to_dict(includepath)
-    generator.generate_messages(package, rosfiles, outdir, search_path)
+    ros_search_path.update(search_path)
+    # **TODO** : we can pass any iterable into searchpath, and do the dependency research dynamically
+    retcode = generator.generate_messages(package, rosfiles, outdir, ros_search_path)
+    assert retcode == 0
 
 
 def genmsg_py(msg_files, package, outdir_pkg, includepath=None, initpy=True):
@@ -86,6 +134,12 @@ def genmsg_py(msg_files, package, outdir_pkg, includepath=None, initpy=True):
     """
     includepath = includepath or []
     outdir = os.path.join(outdir_pkg, 'msg')
+
+    # checking if we have files with unknown extension to except early
+    for f in msg_files:
+        if not f.endswith('.msg'):
+            print("WARNING: {f} doesnt have the proper .msg extension. It has been Ignored.".format(**locals()), file=sys.stderr)
+
     try:
         genros_py(rosfiles=[f for f in msg_files if f.endswith('.msg')],
                   generator=genpy_generator.MsgGenerator(),
@@ -139,6 +193,12 @@ def gensrv_py(srv_files, package, outdir_pkg, includepath=None, initpy=True):
     """
     includepath = includepath or []
     outdir = os.path.join(outdir_pkg, 'srv')
+
+    # checking if we have files with unknown extension to except early
+    for f in srv_files:
+        if not f.endswith('.srv'):
+            print("WARNING: {f} doesnt have the proper .srv extension. It has been Ignored.".format(**locals()), file=sys.stderr)
+
     try:
         genros_py(rosfiles=[f for f in srv_files if f.endswith('.srv')],
                   generator=genpy_generator.SrvGenerator(),
@@ -180,58 +240,7 @@ def gensrv_py(srv_files, package, outdir_pkg, includepath=None, initpy=True):
     return genset
 
 
-def genmsgsrv_py(msgsrv_files, package, outdir_pkg, includepath=None, ns_pkg=True):
-    """"""
-    includepath = includepath or []
-
-    # checking if we have files with unknown extension to except early
-    for f in msgsrv_files:
-        if not f.endswith(('.msg', '.srv')):
-            print("WARNING: {f} doesnt have the proper .msg or .srv extension. It has been Ignored.".format(**locals()), file=sys.stderr)
-
-    genset = set()
-    generated_msg = genmsg_py(msg_files=[f for f in msgsrv_files if f.endswith('.msg')],
-                              package=package,
-                              outdir_pkg=outdir_pkg,
-                              includepath=includepath,
-                              initpy=True)  # we always create an __init__.py when called from here.
-    generated_srv = gensrv_py(srv_files=[f for f in msgsrv_files if f.endswith('.srv')],
-                              package=package,
-                              outdir_pkg=outdir_pkg,
-                              includepath=includepath,
-                              initpy=True)  # we always create an __init__.py when called from here.
-
-    if ns_pkg:
-        # The namespace package creation is only here to allow mixing different path for the same package
-        # so that we do not have to generate messages and services in the package path (that might not be writeable)
-        # Note : the *first* package imported need to declare the namespace package for this to work.
-        # Ref : https://packaging.python.org/namespace_packages/
-        nspkg_init_path = os.path.join(outdir_pkg, '__init__.py')
-        if os.path.exists(nspkg_init_path):
-            raise PkgAlreadyExists("Keeping {nspkg_init_path}, generation skipped.")
-        else:
-            with open(nspkg_init_path, "w") as nspkg_init:
-                nspkg_init.writelines([
-                    "from __future__ import absolute_import, division, print_function\n",
-                    "# this is an autogenerated file for dynamic ROS message creation\n",
-                    "import pkg_resources\n",
-                    "pkg_resources.declare_namespace(__name__)\n",
-                    ""
-                ])
-
-            # because the OS interface might not be synchronous....
-            while not os.path.exists(nspkg_init_path):
-                time.sleep(.1)
-
-    # Whether or not we create the namespace package, we have to return back both msg and srv subpackages,
-    #  since they need to be imported explicitely
-    genset = genset.union(generated_msg)
-    genset = genset.union(generated_srv)
-
-    return genset
-
-
-def generate_msgsrv_nspkg(msgsrvfiles, package=None, dependencies=None, include_path=None, outdir_pkg=None, ns_pkg=True):
+def generate_msgpkg(msgfiles, package=None, dependencies=None, include_path=None, outdir_pkg=None):
     # TODO : since we return a full package, we should probably pass a dir, not the files one by one...
     # by default we generate for this package (does it make sense ?)
     # Careful it might still be None
@@ -268,11 +277,10 @@ def generate_msgsrv_nspkg(msgsrvfiles, package=None, dependencies=None, include_
         except ImportError:
             print("Attempt to import rospkg failed before attempting to resolve dependencies {0}".format(unresolved_dependencies))
 
-    gen_files = genmsgsrv_py(msgsrv_files=msgsrvfiles, package=package, outdir_pkg=outdir_pkg, includepath=include_path, ns_pkg=ns_pkg)
+    gen_files = genmsg_py(msg_files=msgfiles, package=package, outdir_pkg=outdir_pkg, includepath=include_path, initpy=True)
 
     # computing module names that will be importable after outdir_pkg has been added as sitedir
     gen_msgs = None
-    gen_srvs = None
     # Not ideal, but it will do until we implement a custom importer
     for f in gen_files:
         test_gen_msgs_parent = None
@@ -282,25 +290,62 @@ def generate_msgsrv_nspkg(msgsrvfiles, package=None, dependencies=None, include_
         if f.endswith('msg'):
             gen_msgs = package + '.msg'
 
+    # we need to get one level up to get the sitedir (containing the generated namespace package)
+    return os.path.dirname(outdir_pkg), gen_msgs
+    # TODO : return something that can be imported later... with custom importer or following importlib API...
+
+
+def generate_srvpkg(srvfiles, package=None, dependencies=None, include_path=None, outdir_pkg=None, ns_pkg=True):
+    # TODO : since we return a full package, we should probably pass a dir, not the files one by one...
+    # by default we generate for this package (does it make sense ?)
+    # Careful it might still be None
+    package = package or 'gen_msgs'
+
+    # by default we have no dependencies
+    dependencies = dependencies or []
+
+    if not outdir_pkg or not outdir_pkg.startswith(os.sep):
+        # if path is not absolute, we create a temporary directory to hold our generated package
+        gendir = tempfile.mkdtemp('pyros_gen_site')
+        outdir_pkg = os.path.join(gendir, outdir_pkg if outdir_pkg else package)
+
+    include_path = include_path or []
+
+    # we might need to resolve some dependencies
+    unresolved_dependencies = [d for d in dependencies if d not in [p.split(':')[0] for p in include_path]]
+
+    if unresolved_dependencies:
+        try:
+            # In that case we have no choice but to rely on ros packages (on the system) => ROS has to be setup.
+            import rospkg
+
+            # get an instance of RosPack with the default search paths
+            rospack = rospkg.RosPack()
+            for d in unresolved_dependencies:
+                try:
+                    # get the file path for a dependency
+                    dpath = rospack.get_path(d)
+                    # we populate include_path
+                    include_path.append('{d}:{dpath}/srv'.format(**locals()))  # AFAIK only msg can be dependent msg types
+                except rospkg.ResourceNotFound as rnf:
+                    raise MsgDependencyNotFound(rnf.message)
+        except ImportError:
+            print("Attempt to import rospkg failed before attempting to resolve dependencies {0}".format(unresolved_dependencies))
+
+    gen_files = gensrv_py(srv_files=srvfiles, package=package, outdir_pkg=outdir_pkg, includepath=include_path, initpy=True)
+
+    # computing module names that will be importable after outdir_pkg has been added as sitedir
+    gen_srvs = None
+    # Not ideal, but it will do until we implement a custom importer
+    for f in gen_files:
+        test_gen_msgs_parent = None
+        f = f[:-len('.py')] if f.endswith('.py') else f
+        f = f[:-len(os.sep + '__init__')] if f.endswith(os.sep + '__init__') else f
+
         if f.endswith('srv'):
             gen_srvs = package + '.srv'
 
     # we need to get one level up to get the sitedir (containing the generated namespace package)
-    return os.path.dirname(outdir_pkg), gen_msgs, gen_srvs
+    return os.path.dirname(outdir_pkg), gen_srvs
     # TODO : return something that can be imported later... with custom importer or following importlib API...
-
-
-# This API is useful to import after a generation has been done with details.
-# TODO : implement custom importer to do this as properly as possible
-def import_msgsrv(sitedir, gen_msgs = None, gen_srvs = None):
-    import site
-    site.addsitedir(sitedir)  # we add our output dir as a site (to be able to import from it as usual)
-    # because we modify sys.path, we also need to handle namespace packages
-    pkg_resources.fixup_namespace_packages(sitedir)
-
-    msgs_mod = importlib.import_module(gen_msgs)
-    srvs_mod = importlib.import_module(gen_srvs)
-
-    return msgs_mod, srvs_mod
-    # TODO : doublecheck and fix that API to return the same thing as importlib.import_module returns, for consistency,...
 
