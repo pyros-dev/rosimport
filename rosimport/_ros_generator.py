@@ -125,9 +125,26 @@ def genros_py(rosfiles, generator, package, outdir, includepath=None):
     # TODO : maybe we dont need this, and that translation should be handled before ?
     search_path = genmsg.command_line.includepath_to_dict(includepath)
     ros_search_path.update(search_path)
-    # **TODO** : we can pass any iterable into searchpath, and do the dependency research dynamically
     retcode = generator.generate_messages(package, rosfiles, outdir, ros_search_path)
     assert retcode == 0
+    # TODO : handle thrown exception (cleaner than hacking the search path dict...)
+    # try:
+    #     generator.generate_messages(package, rosfiles, outdir, search_path)
+    # except genmsg.MsgNotFound as mnf:
+    #     try:
+    #         mod = importlib.import_module(mnf.package)
+    #         # import succeeded : we should get the namespace path that has '/msg'
+    #         # and add it to the list of paths to avoid going through this all over again...
+    #         for p in mod.__path__:
+    #             # Note we want dependencies here. dependencies are ALWAYS '.msg' files in 'msg' directory.
+    #             msg_path = os.path.join(p, genmsg_MSG_DIR)
+    #             # We add a path only if we can find the 'msg' directory
+    #             search_path[mnf.package] = search_path[mnf.package] + ([msg_path] if os.path.exists(msg_path) else [])
+    #         # Try generation again
+    #         generator.generate_messages(package, rosfiles, outdir, search_path)
+    #     except ImportError:
+    #         # import failed
+    #         return None
 
 
 def genmsg_py(msg_files, package, outdir_pkg, includepath=None, initpy=True):
