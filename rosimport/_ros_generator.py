@@ -49,6 +49,14 @@ except ImportError:
     # If needed it should have been done before (loading a parent package).
     # this handle the case where we want to be independent of any underlying ROS system.
 
+# TMP bwcompat
+try:
+    import genmsg.MSG_DIR as genmsg_MSG_DIR
+    import genmsg.SRV_DIR as genmsg_SRV_DIR
+except ImportError:  # bwcompat
+    genmsg_MSG_DIR = 'msg'
+    genmsg_SRV_DIR = 'srv'
+
 
 class MsgDependencyNotFound(Exception):
     pass
@@ -74,7 +82,7 @@ class RosSearchPath(dict):
             # and add it to the list of paths to avoid going through this all over again...
             for p in mod.__path__:
                 # Note we want dependencies here. dependencies are ALWAYS '.msg' files in 'msg' directory.
-                msg_path = os.path.join(p, genmsg.MSG_DIR)
+                msg_path = os.path.join(p, genmsg_MSG_DIR)
                 # We add a path only if we can find the 'mg' directory
                 self[item] = self.get(item, []) + ([msg_path] if os.path.exists(msg_path) else [])
             return mod

@@ -287,15 +287,20 @@ class TestImportLibMsg(unittest.TestCase):
 
 
 class TestImportLibSrv(unittest.TestCase):
-    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps', 'ros_comm_msgs')
+
+    ros_comm_msgs_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps', 'ros_comm_msgs')
+    # For dependencies
+    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps')
 
     @classmethod
     def setUpClass(cls):
         activate_hook_for(cls.rosdeps_path)
+        activate_hook_for(cls.ros_comm_msgs_path)
 
     @classmethod
     def tearDownClass(cls):
         deactivate_hook_for(cls.rosdeps_path)
+        deactivate_hook_for(cls.ros_comm_msgs_path)
 
     @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
     def test_importlib_import_absolute_srv(self):

@@ -138,15 +138,19 @@ class TestImportMsg(unittest.TestCase):
 
 class TestImportSrv(unittest.TestCase):
 
-    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps', 'ros_comm_msgs')
+    ros_comm_msgs_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps', 'ros_comm_msgs')
+    # For dependencies
+    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps')
 
     @classmethod
     def setUpClass(cls):
         activate_hook_for(cls.rosdeps_path)
+        activate_hook_for(cls.ros_comm_msgs_path)
 
     @classmethod
     def tearDownClass(cls):
         deactivate_hook_for(cls.rosdeps_path)
+        deactivate_hook_for(cls.ros_comm_msgs_path)
 
     def test_import_absolute_srv(self):
         print_importers()
