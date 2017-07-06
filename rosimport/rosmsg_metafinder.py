@@ -36,13 +36,19 @@ if sys.version_info >= (3, 4):
     import importlib.abc
     import importlib.machinery
 
-    class ROSImportMetaFinder(importlib.abc.MetaPathFinder):
+    class ROSDirectoryMetaFinder(importlib.machinery.PathFinder):
+
+        @classmethod
+        def find_module(cls, fullname, path=None):  # from importlib.PathFinder
+            pass
+
+    class ROSDistroMetaFinder(importlib.machinery.PathFinder):
         def __init__(self, *workspaces):
             """
             :param workspaces: can be a devel or install workspace (including a distro install directory), but also a directory containing packages (like a source workspace)
             These should all work, without catkin build necessary.
             """
-            super(ROSImportMetaFinder, self).__init__()
+            super(ROSDistroMetaFinder, self).__init__()
             # TODO : prevent that when we are in virtualenv and we have not allowed system site packages
 
             self.src_rospkgs = []

@@ -133,7 +133,32 @@ class ROSDirectoryFinder(object):
                     if any(f.endswith(suffix) for f in files):
                         loader_class = loader_cls
                         rosdir = root
+                        break  # breaking as soon as we find something interesting
+                        # we need to take care of msgs before srvs (because they can be used as dependencies
             if loader_class and rosdir and rosdir == base_path:  # we found a message/service file in the hierarchy, that belong to our module
+                rospackage = fullname.partition('.')[0]
+                # We should reproduce package structure in generated file structure
+                dirlist = base_path.split(os.sep)
+                pkgidx = dirlist[::-1].index(rospackage)
+                # find root package folder
+                pkgrootdir = os.path.join('/' if dirlist[0] == '' else '', *dirlist[:len(dirlist) - pkgidx])
+
+                # # Find the the public ROS interface definition (that we can also depend on)
+                # if not os.path.exists(os.path.join(pkgrootdir, 'package.xml')):
+                #     public_msg = None
+                #     # we try to find a lower 'msg' to use as dependency (only if we are not at the 'package' level, or at root (dirname(d) == d) )
+                #     while os.path.dirname(pkgrootdir) != pkgrootdir and not os.path.exists(
+                #             os.path.join(pkgrootdir, 'package.xml')):
+                #         parentdirmsg = os.path.join(os.path.dirname(pkgrootdir), 'msg')
+                #         if os.path.exists(parentdirmsg) and [f for f in os.listdir(parentdirmsg) if f.endswith('.msg')]:
+                #             public_msg = parentdirmsg
+                #         pkgrootdir = os.path.dirname(pkgrootdir)
+                #     # TODO : maybe discover and load all messages at a "closer to root" level in package tree ??
+                #     if public_msg:
+                #         # we need to load the public interface first (to avoid caching an ungenerated root module)
+                #         public_msg_spec = self.build_spec_loader(fullname, base_path, loader_class)
+
+
                 # Generate something !
                 spec = self.build_spec_loader(fullname, base_path, loader_class)
 

@@ -51,7 +51,7 @@ from ._utils import print_importers
 
 class TestImportMsg(unittest.TestCase):
 
-    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps')
+    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'rosdeps')
 
     @classmethod
     def setUpClass(cls):
@@ -66,55 +66,96 @@ class TestImportMsg(unittest.TestCase):
 
         # Verify that files exists and are importable
         import std_msgs.msg as std_msgs
+        import genpy
 
         self.assertTrue(std_msgs is not None)
         self.assertTrue(std_msgs.Bool is not None)
         self.assertTrue(callable(std_msgs.Bool))
         self.assertTrue(std_msgs.Bool._type == 'std_msgs/Bool')
 
+        # A more complex message type
+        self.assertTrue(std_msgs.Header is not None)
+        self.assertTrue(callable(std_msgs.Header))
+        self.assertTrue(std_msgs.Header._type == 'std_msgs/Header')
+
         # use it !
         self.assertTrue(std_msgs.Bool(True))
+        self.assertTrue(std_msgs.Header(seq=42, stamp=genpy.Time(secs=21, nsecs=7), frame_id=0))
 
     def test_import_class_from_absolute_msg(self):
         """Verify that"""
         print_importers()
 
         # Verify that files exists and are importable
-        from std_msgs.msg import Bool
+        from std_msgs.msg import Bool, Header
+        import genpy
 
         self.assertTrue(Bool is not None)
         self.assertTrue(callable(Bool))
         self.assertTrue(Bool._type == 'std_msgs/Bool')
 
+        # A more complex message type
+        self.assertTrue(Header is not None)
+        self.assertTrue(callable(Header))
+        self.assertTrue(Header._type == 'std_msgs/Header')
+
         # use it !
         self.assertTrue(Bool(True))
+        self.assertTrue(Header(seq=42, stamp=genpy.Time(secs=21, nsecs=7), frame_id=0))
 
     def test_import_relative_msg(self):
         """Verify that package is importable relatively"""
         print_importers()
+
+        # import first to be able to use as dependency later
+        # from rosimport.msg import TestRosMsg
 
         from . import msg as test_msgs
 
         self.assertTrue(test_msgs is not None)
         self.assertTrue(test_msgs.TestMsg is not None)
         self.assertTrue(callable(test_msgs.TestMsg))
-        self.assertTrue(test_msgs.TestMsg._type == 'rosimport/TestMsg')  # careful between ros package name and python package name
+        self.assertTrue(test_msgs.TestMsg._type == 'tests/TestMsg')  # careful between ros package name and python package name
+
+        self.assertTrue(test_msgs.TestMsgDeps is not None)
+        self.assertTrue(callable(test_msgs.TestMsgDeps))
+        self.assertTrue(test_msgs.TestMsgDeps._type == 'tests/TestMsgDeps')  # careful between ros package name and python package name
 
         # use it !
         self.assertTrue(test_msgs.TestMsg(test_bool=True, test_string='Test').test_bool)
+
+        self.assertTrue(test_msgs.TestMsgDeps(
+            test_bool=True,
+            test_std_bool=True,  # implicit import of std_msgs
+            test_ros_deps=test_msgs.TestRosMsgDeps(   # dependency imported
+                test_ros_std_bool=True,  # implicit import of std_msgs
+                test_ros_msg=test_msgs.TestRosMsg(test_ros_bool=True)  # dependency of dependency
+            )))
 
     def test_import_class_from_relative_msg(self):
         """Verify that message class is importable relatively"""
         print_importers()
 
-        from .msg import TestMsg
+        from .msg import TestMsg, TestMsgDeps, TestRosMsgDeps, TestRosMsg
 
         self.assertTrue(TestMsg is not None)
         self.assertTrue(callable(TestMsg))
-        self.assertTrue(TestMsg._type == 'rosimport/TestMsg')
+        self.assertTrue(TestMsg._type == 'tests/TestMsg')  # careful between ros package name and python package name
+
+        self.assertTrue(TestMsgDeps is not None)
+        self.assertTrue(callable(TestMsgDeps))
+        self.assertTrue(TestMsgDeps._type == 'tests/TestMsgDeps')  # careful between ros package name and python package name
 
         # use it !
         self.assertTrue(TestMsg(test_bool=True, test_string='Test').test_bool)
+
+        self.assertTrue(TestMsgDeps(
+            test_bool=True,
+            test_std_bool=True,  # implicit import of std_msgs
+            test_ros_deps=TestRosMsgDeps(   # dependency imported
+                test_ros_std_bool=True,  # implicit import of std_msgs
+                test_ros_msg=TestRosMsg(test_ros_bool=True)  # dependency of dependency
+            )))
 
     def test_import_absolute_class_raises(self):
         print_importers()
@@ -138,19 +179,17 @@ class TestImportMsg(unittest.TestCase):
 
 class TestImportSrv(unittest.TestCase):
 
-    ros_comm_msgs_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps', 'ros_comm_msgs')
+    ros_comm_msgs_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'rosdeps', 'ros_comm_msgs')
     # For dependencies
-    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps')
+    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'rosdeps')
 
     @classmethod
     def setUpClass(cls):
-        activate_hook_for(cls.rosdeps_path)
-        activate_hook_for(cls.ros_comm_msgs_path)
+        activate_hook_for(cls.rosdeps_path, cls.ros_comm_msgs_path)
 
     @classmethod
     def tearDownClass(cls):
-        deactivate_hook_for(cls.rosdeps_path)
-        deactivate_hook_for(cls.ros_comm_msgs_path)
+        deactivate_hook_for(cls.rosdeps_path, cls.ros_comm_msgs_path)
 
     def test_import_absolute_srv(self):
         print_importers()
@@ -205,46 +244,98 @@ class TestImportSrv(unittest.TestCase):
         print_importers()
 
         from . import srv as test_srvs
+        from . import msg as test_msgs
 
         self.assertTrue(test_srvs is not None)
 
         self.assertTrue(test_srvs.TestSrv is not None)
         self.assertTrue(callable(test_srvs.TestSrv))
-        self.assertTrue(test_srvs.TestSrv._type == 'rosimport/TestSrv')  # careful between ros package name and python package name
+        self.assertTrue(test_srvs.TestSrv._type == 'tests/TestSrv')  # careful between ros package name and python package name
 
         self.assertTrue(test_srvs.TestSrvRequest is not None)
         self.assertTrue(callable(test_srvs.TestSrvRequest))
-        self.assertTrue(test_srvs.TestSrvRequest._type == 'rosimport/TestSrvRequest')  # careful between ros package name and python package name
+        self.assertTrue(test_srvs.TestSrvRequest._type == 'tests/TestSrvRequest')  # careful between ros package name and python package name
 
         self.assertTrue(test_srvs.TestSrvResponse is not None)
         self.assertTrue(callable(test_srvs.TestSrvResponse))
-        self.assertTrue(test_srvs.TestSrvResponse._type == 'rosimport/TestSrvResponse')  # careful between ros package name and python package name
+        self.assertTrue(test_srvs.TestSrvResponse._type == 'tests/TestSrvResponse')  # careful between ros package name and python package name
 
         # use it !
         self.assertTrue(test_srvs.TestSrvRequest(test_request='Test').test_request)
         self.assertTrue(test_srvs.TestSrvResponse(test_response=True).test_response)
 
+        self.assertTrue(test_srvs.TestSrvDeps is not None)
+        self.assertTrue(callable(test_srvs.TestSrvDeps))
+        self.assertTrue(test_srvs.TestSrvDeps._type == 'tests/TestSrvDeps')  # careful between ros package name and python package name
+
+        self.assertTrue(test_srvs.TestSrvDepsRequest is not None)
+        self.assertTrue(callable(test_srvs.TestSrvDepsRequest))
+        self.assertTrue(test_srvs.TestSrvDepsRequest._type == 'tests/TestSrvDepsRequest')  # careful between ros package name and python package name
+
+        self.assertTrue(test_srvs.TestSrvDepsResponse is not None)
+        self.assertTrue(callable(test_srvs.TestSrvDepsResponse))
+        self.assertTrue(test_srvs.TestSrvDepsResponse._type == 'tests/TestSrvDepsResponse')  # careful between ros package name and python package name
+
+        # use it !
+        self.assertTrue(test_srvs.TestSrvDepsRequest(
+            test_request='Test',
+            test_ros_deps=test_msgs.TestRosMsgDeps(  # dependency imported
+                test_ros_std_bool=True,  # implicit import of std_msgs
+                test_ros_msg=test_msgs.TestRosMsg(test_ros_bool=True)  # dependency of dependency
+            )))
+        self.assertTrue(test_srvs.TestSrvDepsResponse(
+            test_response='Test',
+            test_std_bool=True,  # implicit import of std_msgs
+        ))
+
     def test_import_class_from_relative_srv(self):
         """Verify that message class is importable relatively"""
         print_importers()
 
-        from .srv import TestSrv, TestSrvRequest, TestSrvResponse
+        from .srv import TestSrv, TestSrvRequest, TestSrvResponse, TestSrvDeps, TestSrvDepsRequest, TestSrvDepsResponse
+        # importing message dependencies after services to verify they are transitively already imported when needed.
+        from .msg import TestRosMsgDeps, TestRosMsg
 
         self.assertTrue(TestSrv is not None)
         self.assertTrue(callable(TestSrv))
-        self.assertTrue(TestSrv._type == 'rosimport/TestSrv')  # careful between ros package name and python package name
+        self.assertTrue(TestSrv._type == 'tests/TestSrv')  # careful between ros package name and python package name
 
         self.assertTrue(TestSrvRequest is not None)
         self.assertTrue(callable(TestSrvRequest))
-        self.assertTrue(TestSrvRequest._type == 'rosimport/TestSrvRequest')
+        self.assertTrue(TestSrvRequest._type == 'tests/TestSrvRequest')
 
         self.assertTrue(TestSrvResponse is not None)
         self.assertTrue(callable(TestSrvResponse))
-        self.assertTrue(TestSrvResponse._type == 'rosimport/TestSrvResponse')
+        self.assertTrue(TestSrvResponse._type == 'tests/TestSrvResponse')
 
         # use it !
         self.assertTrue(TestSrvRequest(test_request='Test').test_request)
         self.assertTrue(TestSrvResponse(test_response=True).test_response)
+
+        #  A more complex service
+        self.assertTrue(TestSrvDeps is not None)
+        self.assertTrue(callable(TestSrvDeps))
+        self.assertTrue(TestSrvDeps._type == 'tests/TestSrvDeps')  # careful between ros package name and python package name
+
+        self.assertTrue(TestSrvDepsRequest is not None)
+        self.assertTrue(callable(TestSrvDepsRequest))
+        self.assertTrue(TestSrvDepsRequest._type == 'tests/TestSrvDepsRequest')  # careful between ros package name and python package name
+
+        self.assertTrue(TestSrvDepsResponse is not None)
+        self.assertTrue(callable(TestSrvDepsResponse))
+        self.assertTrue(TestSrvDepsResponse._type == 'tests/TestSrvDepsResponse')  # careful between ros package name and python package name
+
+        # use it !
+        self.assertTrue(TestSrvDepsRequest(
+            test_request='Test',
+            test_ros_deps=TestRosMsgDeps(  # dependency imported
+                test_ros_std_bool=True,  # implicit import of std_msgs
+                test_ros_msg=TestRosMsg(test_ros_bool=True)  # dependency of dependency
+            )))
+        self.assertTrue(TestSrvDepsResponse(
+            test_response='Test',
+            test_std_bool=True,  # implicit import of std_msgs
+            ))
 
     def test_import_absolute_class_raises(self):
         print_importers()

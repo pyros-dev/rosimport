@@ -1,0 +1,1 @@
+bool test_ros_bool

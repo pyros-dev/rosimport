@@ -13,7 +13,7 @@ import pkg_resources
 import importlib
 import site
 
-from rosimport import generate_msgpkg, generate_srvpkg, ros_search_path, activate_hook_for, deactivate_hook_for
+from rosimport import generate_rosdefs_py, activate_hook_for, deactivate_hook_for
 
 if (2, 7) <= sys.version_info < (3, 4):
     import filefinder2
@@ -26,14 +26,12 @@ class TestImportBasicMsg(unittest.TestCase):
         """ Testing our generated msg package is importable.
         Note this test require filefinder2 on python2 for passing."""
         # generating message class
-        sitedir, generated_msg = generate_msgpkg(
+        sitedir, generated_msg, _ = generate_rosdefs_py(
             [os.path.join(os.path.dirname(__file__), 'msg', 'TestMsg.msg')],
             package='test_gen_msgs',
         )
 
         site.addsitedir(sitedir)  # we add our output dir as a site (to be able to import from it as usual)
-        # because we modify sys.path, we also need to handle namespace packages
-        # pkg_resources.fixup_namespace_packages(sitedir) # OR NOT ?
 
         # Verify that files exists and are importable
         for m in [generated_msg]:
@@ -50,14 +48,12 @@ class TestImportBasicMsg(unittest.TestCase):
         """ Testing our generated srv package is importable.
         Note this test require filefinder2 on python2 for passing."""
         # generating message class
-        sitedir, generated_srv = generate_srvpkg(
+        sitedir, _, generated_srv = generate_rosdefs_py(
             [os.path.join(os.path.dirname(__file__), 'srv', 'TestSrv.srv')],
             package='test_gen_srvs',
         )
 
         site.addsitedir(sitedir)  # we add our output dir as a site (to be able to import from it as usual)
-        # because we modify sys.path, we also need to handle namespace packages
-        # pkg_resources.fixup_namespace_packages(sitedir) # OR NOT ?
 
         # Verify that files exists and are importable
         for s in [generated_srv]:
@@ -79,7 +75,7 @@ class TestImportBasicMsg(unittest.TestCase):
 
 class TestGenerateWithDeps(unittest.TestCase):
 
-    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps')
+    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'rosdeps')
 
     @classmethod
     def setUpClass(cls):
@@ -97,14 +93,17 @@ class TestGenerateWithDeps(unittest.TestCase):
         so the generation of the message cannot be independent from the import system."""
 
         # generating message class
-        sitedir, generated_msg = generate_msgpkg(
-            [os.path.join(os.path.dirname(__file__), 'msg', 'TestMsgDeps.msg')],
+        sitedir, generated_msg, _ = generate_rosdefs_py(
+            [
+                # Dependencies first !
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), 'msg', 'TestRosMsg.msg'),
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), 'msg', 'TestRosMsgDeps.msg'),
+                os.path.join(os.path.dirname(__file__), 'msg', 'TestMsgDeps.msg'),
+            ],
             package='test_gen_msgs_deps',  # Note we need a different name to avoid being messed up with modules cache
         )
 
         site.addsitedir(sitedir)  # we add our output dir as a site (to be able to import from it as usual)
-        # because we modify sys.path, we also need to handle namespace packages
-        # pkg_resources.fixup_namespace_packages(sitedir) # OR NOT ?
 
         # Verify that files exists and are importable
         for m in [generated_msg]:
@@ -124,15 +123,16 @@ class TestGenerateWithDeps(unittest.TestCase):
         to be able to import from another message module for dependencies,
         so the generation of the message cannot be independent from the import system."""
 
-        # generating message class
-        sitedir, generated_srv = generate_srvpkg(
-            [os.path.join(os.path.dirname(__file__), 'srv', 'TestSrvDeps.srv')],
+        # generating message dependencies
+        sitedir, generated_msg, generated_srv = generate_rosdefs_py(
+            [
+                # Dependencies first !
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), 'msg', 'TestRosMsg.msg'),
+                os.path.join(os.path.dirname(os.path.dirname(__file__)), 'msg', 'TestRosMsgDeps.msg'),
+                os.path.join(os.path.dirname(__file__), 'srv', 'TestSrvDeps.srv'),
+            ],
             package='test_gen_srvs_deps',  # Note we need a different name to avoid being messed up with modules cache
         )
-
-        site.addsitedir(sitedir)  # we add our output dir as a site (to be able to import from it as usual)
-        # because we modify sys.path, we also need to handle namespace packages
-        # pkg_resources.fixup_namespace_packages(sitedir) # OR NOT ?
 
         # Verify that files exists and are importable
         for s in [generated_srv]:
@@ -140,6 +140,7 @@ class TestGenerateWithDeps(unittest.TestCase):
             gen_file = os.path.join(sitedir, *s.split("."))
             assert os.path.exists(gen_file + '.py') or os.path.exists(os.path.join(gen_file, '__init__.py'))
 
+            # This should transitively import generate_msg module
             srvs_mod = importlib.import_module(s)
             assert srvs_mod is not None
             assert hasattr(srvs_mod, 'TestSrvDeps')

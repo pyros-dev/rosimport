@@ -294,13 +294,11 @@ class TestImportLibSrv(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        activate_hook_for(cls.rosdeps_path)
-        activate_hook_for(cls.ros_comm_msgs_path)
+        activate_hook_for(cls.rosdeps_path, cls.ros_comm_msgs_path)
 
     @classmethod
     def tearDownClass(cls):
-        deactivate_hook_for(cls.rosdeps_path)
-        deactivate_hook_for(cls.ros_comm_msgs_path)
+        deactivate_hook_for(cls.rosdeps_path, cls.ros_comm_msgs_path)
 
     @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
     def test_importlib_import_absolute_srv(self):

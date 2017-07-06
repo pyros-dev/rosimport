@@ -8,7 +8,7 @@ import tempfile
 import shutil
 
 
-from rosimport import genmsg_py, gensrv_py
+from rosimport import genros_py, ros_search_path
 
 """
 A module to setup custom importer for .msg and .srv files
@@ -45,7 +45,7 @@ def RosLoader(rosdef_extension):
 
     if (2, 7) <= sys.version_info < (3, 4):  # valid until which py3 version ?
         import filefinder2
-        FileLoader = filefinder2.FileLoader2
+        FileLoader = filefinder2.SourceFileLoader2
     elif sys.version_info >= (3, 4):  # we do not support 3.2 and 3.3 (unsupported but might work ?)
         import importlib.machinery
         FileLoader = importlib.machinery.SourceFileLoader
@@ -53,9 +53,18 @@ def RosLoader(rosdef_extension):
         raise ImportError("ros_loader : Unsupported python version")
 
     class ROSDefLoader(FileLoader):
+        """
+        Python Loader for Rosdef files.
+        Note : Only messages at the lowest level of package
+               along with package.xml, like for usual ROS message definitions,
+               are usable as dependencies of current and other messages.
+        """
+
         def __init__(self, fullname, path):
 
             self.logger = logging.getLogger(__name__)
+            # to normalize input
+            path = os.path.normpath(path)
 
             # Doing this in each loader, in case we are running from different processes,
             # avoiding to reload from same file (especially useful for boxed tests).
@@ -69,6 +78,9 @@ def RosLoader(rosdef_extension):
             # We should reproduce package structure in generated file structure
             dirlist = path.split(os.sep)
             pkgidx = dirlist[::-1].index(self.rospackage)
+            # find root package folder
+            pkgrootdir= os.path.join('/' if dirlist[0] == '' else '', *dirlist[:len(dirlist)-pkgidx])
+            # find intermediates folders
             indirlist = [p for p in dirlist[:len(dirlist)-pkgidx-1:-1] if p != loader_origin_subdir and not p.endswith(loader_file_extension)]
             self.outdir_pkg = os.path.join(self.rosimport_path, self.rospackage, *indirlist[::-1])
 
@@ -76,42 +88,31 @@ def RosLoader(rosdef_extension):
                 if path.endswith(loader_origin_subdir) and any([f.endswith(loader_file_extension) for f in os.listdir(path)]):  # if we get a non empty 'msg' folder
                     init_path = os.path.join(self.outdir_pkg, loader_generated_subdir, '__init__.py')
                     if not os.path.exists(init_path):
-                        # TODO : we need to determine that from the loader
-                        # as a minimum we need to add current package
-                        self.includepath = [self.rospackage + ':' + path]
 
-                        # TODO : unify this after reviewing rosmsg_generator API
-                        if loader_file_extension == '.msg':
-                            # TODO : dynamic in memory generation (we do not need the file ultimately...)
-                            self.gen_msgs = genmsg_py(
-                                msg_files=[os.path.join(path, f) for f in os.listdir(path)],  # every file not ending in '.msg' will be ignored
-                                package=self.rospackage,
-                                outdir_pkg=self.outdir_pkg,
-                                includepath=self.includepath,
-                                initpy=True  # we always create an __init__.py when called from here.
-                            )
-                            init_path = None
-                            for pyf in self.gen_msgs:
-                                if pyf.endswith('__init__.py'):
-                                    init_path = pyf
-                        elif loader_file_extension == '.srv':
-                            # TODO : dynamic in memory generation (we do not need the file ultimately...)
-                            self.gen_msgs = gensrv_py(
-                                srv_files=[os.path.join(path, f) for f in os.listdir(path)],
-                                # every file not ending in '.msg' will be ignored
-                                package=self.rospackage,
-                                outdir_pkg=self.outdir_pkg,
-                                includepath=self.includepath,
-                                initpy=True  # we always create an __init__.py when called from here.
-                            )
-                            init_path = None
-                            for pyf in self.gen_msgs:
-                                if pyf.endswith('__init__.py'):
-                                    init_path = pyf
-                        else:
-                            raise RuntimeError(
-                                "RosDefLoader for a format {0} other than .msg or .srv is not supported".format(
-                                    rosdef_extension))
+                        # CAREFUL : because of import logic and message generation logic for dependencies,
+                        # we should add all rosdefs files that are found in parent directories,
+                        # and that are not already in ros_search_path
+                        rosdef_files = []
+                        ros_pkg = fullname.partition('.')[0]
+                        walking_path = path
+                        while walking_path != os.path.dirname(walking_path) and not os.path.exists(os.path.join(walking_path, 'package.xml')):
+                            walking_path = os.path.dirname(walking_path)
+                            if walking_path not in ros_search_path.get(ros_pkg, []):
+                                if os.path.exists(os.path.join(walking_path, loader_origin_subdir)):
+                                    msg_walking_path = os.path.join(walking_path, loader_origin_subdir)
+                                    rosdef_files += [os.path.join(msg_walking_path, f) for f in os.listdir(msg_walking_path) if f.endswith(loader_file_extension)]
+
+                        # TODO : dynamic in memory generation (we do not need the file ultimately...)
+                        self.gen_rosdefs = genros_py(
+                            rosdef_files=rosdef_files,  # generate all message's python code at once.
+                            package=self.rospackage,
+                            outdir_pkg=self.outdir_pkg,
+                            #include_path=self.includepath,  # this should be automatically taken care of by generator API (+ import mechanism)
+                        )
+                        init_path = None
+                        for pyf in self.gen_rosdefs:
+                            if pyf.endswith('__init__.py'):
+                                init_path = pyf
 
                     if not init_path:
                         raise ImportError("__init__.py file not found".format(init_path))
@@ -119,11 +120,7 @@ def RosLoader(rosdef_extension):
                         raise ImportError("{0} file not found".format(init_path))
 
                     # relying on usual source file loader since we have generated normal python code
-                    if (2, 7) <= sys.version_info < (3, 4):  # valid until which py3 version ?
-                        # BUT we need to pass the directory path (not the init file path like for python3)
-                        super(ROSDefLoader, self).__init__(fullname, os.path.dirname(init_path))
-                    else:
-                        super(ROSDefLoader, self).__init__(fullname, init_path)
+                    super(ROSDefLoader, self).__init__(fullname, init_path)
 
         def get_gen_path(self):
             """Returning the generated path matching the import"""

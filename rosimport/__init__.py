@@ -4,17 +4,16 @@ import sys
 
 from ._ros_generator import (
     MsgDependencyNotFound,
-    generate_msgpkg,
-    generate_srvpkg,
-    genmsg_py,
-    gensrv_py,
+    ros_search_path,
+    genros_py,
+    generate_rosdefs_py,
 )
 
 from ._rosdef_loader import ROSMsgLoader, ROSSrvLoader
 
 from ._ros_directory_finder import get_supported_ros_loaders
 
-from ._ros_generator import ros_search_path
+from ._ros_generator import generate_rosdefs_py, genros_py, ros_search_path
 
 
 # Making the activation explicit for now
