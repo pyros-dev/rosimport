@@ -31,8 +31,6 @@ class TestImportBasicMsg(unittest.TestCase):
             package='test_gen_msgs',
         )
 
-        site.addsitedir(sitedir)  # we add our output dir as a site (to be able to import from it as usual)
-
         # Verify that files exists and are importable
         for m in [generated_msg]:
             # modules are generated where the file is launched
@@ -52,8 +50,6 @@ class TestImportBasicMsg(unittest.TestCase):
             [os.path.join(os.path.dirname(__file__), 'srv', 'TestSrv.srv')],
             package='test_gen_srvs',
         )
-
-        site.addsitedir(sitedir)  # we add our output dir as a site (to be able to import from it as usual)
 
         # Verify that files exists and are importable
         for s in [generated_srv]:
@@ -102,8 +98,6 @@ class TestGenerateWithDeps(unittest.TestCase):
             ],
             package='test_gen_msgs_deps',  # Note we need a different name to avoid being messed up with modules cache
         )
-
-        site.addsitedir(sitedir)  # we add our output dir as a site (to be able to import from it as usual)
 
         # Verify that files exists and are importable
         for m in [generated_msg]:

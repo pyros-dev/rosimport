@@ -77,12 +77,13 @@ class RosSearchPath(dict):
 
     def try_import(self, item):
         try:
-            mod = importlib.import_module(item)
-            # import succeeded : we should get the namespace path that has '/msg'
+            # we need to import the .msg submodule (only one usable as dependency)
+            mod = importlib.import_module(item + '.msg')
+            # import succeeded : we should get the namespace path
             # and add it to the list of paths to avoid going through this all over again...
             for p in mod.__path__:
                 # Note we want dependencies here. dependencies are ALWAYS '.msg' files in 'msg' directory.
-                msg_path = os.path.join(p, genmsg_MSG_DIR)
+                msg_path = os.path.join(p)
                 # We add a path only if we can find the 'msg' directory
                 self[item] = self.get(item, []) + ([msg_path] if os.path.exists(msg_path) else [])
             return mod
@@ -232,15 +233,14 @@ def genros_py(rosdef_files, package, outdir_pkg, include_path=None):
         # and be able to import from it as usual, even while generating python code...
         site.addsitedir(os.path.dirname(outdir_pkg))  # we add our output dir as a site
 
-    # messages should be generated first since since they can be used as dependencies
     generated_msgpkg = _genmsgpkg_py(
         files=[f for f in rosdef_files if f.endswith('.msg')],
         package=package,
         outdir_pkg=outdir_pkg,
         include_path=include_path
     )
-    # Here the include path has already been added to ros_search_path, and can be used to discover msg as dependencies
 
+    # Here the include path has already been added to ros_search_path, and can be used to discover msg as dependencies
     generated_srvpkg = _gensrvpkg_py(
         files=[f for f in rosdef_files if f.endswith('.srv')],
         package=package,

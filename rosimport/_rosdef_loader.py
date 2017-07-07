@@ -70,49 +70,45 @@ def RosLoader(rosdef_extension):
             # avoiding to reload from same file (especially useful for boxed tests).
             # But deterministic path to avoid regenerating from the same interpreter
             self.rosimport_path = os.path.join(tempfile.gettempdir(), 'rosimport', str(os.getpid()))
-            if os.path.exists(self.rosimport_path):
-                shutil.rmtree(self.rosimport_path)
-            os.makedirs(self.rosimport_path)
+            if not os.path.exists(self.rosimport_path):
+                os.makedirs(self.rosimport_path)
 
             self.rospackage = fullname.partition('.')[0]
-            # We should reproduce package structure in generated file structure
-            dirlist = path.split(os.sep)
-            pkgidx = dirlist[::-1].index(self.rospackage)
-            # find root package folder
-            pkgrootdir= os.path.join('/' if dirlist[0] == '' else '', *dirlist[:len(dirlist)-pkgidx])
-            # find intermediates folders
-            indirlist = [p for p in dirlist[:len(dirlist)-pkgidx-1:-1] if p != loader_origin_subdir and not p.endswith(loader_file_extension)]
-            self.outdir_pkg = os.path.join(self.rosimport_path, self.rospackage, *indirlist[::-1])
+            self.outdir_pkg = os.path.join(self.rosimport_path, self.rospackage)
 
             if os.path.isdir(path):
                 if path.endswith(loader_origin_subdir) and any([f.endswith(loader_file_extension) for f in os.listdir(path)]):  # if we get a non empty 'msg' folder
-                    init_path = os.path.join(self.outdir_pkg, loader_generated_subdir, '__init__.py')
-                    if not os.path.exists(init_path):
 
-                        # CAREFUL : because of import logic and message generation logic for dependencies,
-                        # we should add all rosdefs files that are found in parent directories,
-                        # and that are not already in ros_search_path
-                        rosdef_files = []
-                        ros_pkg = fullname.partition('.')[0]
-                        walking_path = path
-                        while walking_path != os.path.dirname(walking_path) and not os.path.exists(os.path.join(walking_path, 'package.xml')):
-                            walking_path = os.path.dirname(walking_path)
-                            if walking_path not in ros_search_path.get(ros_pkg, []):
-                                if os.path.exists(os.path.join(walking_path, loader_origin_subdir)):
-                                    msg_walking_path = os.path.join(walking_path, loader_origin_subdir)
-                                    rosdef_files += [os.path.join(msg_walking_path, f) for f in os.listdir(msg_walking_path) if f.endswith(loader_file_extension)]
+                    # The msg/srv subpackage should be generated all at once.
+                    # If same package is present with same PID,
+                    # it s a full new import in a new process, so we should clean existing code.
+                    if os.path.exists(os.path.join(self.outdir_pkg, loader_generated_subdir)):
+                        shutil.rmtree(os.path.join(self.outdir_pkg, loader_generated_subdir))
 
-                        # TODO : dynamic in memory generation (we do not need the file ultimately...)
-                        self.gen_rosdefs = genros_py(
-                            rosdef_files=rosdef_files,  # generate all message's python code at once.
-                            package=self.rospackage,
-                            outdir_pkg=self.outdir_pkg,
-                            #include_path=self.includepath,  # this should be automatically taken care of by generator API (+ import mechanism)
-                        )
-                        init_path = None
-                        for pyf in self.gen_rosdefs:
-                            if pyf.endswith('__init__.py'):
-                                init_path = pyf
+                    # CAREFUL : because of import logic and message generation logic for dependencies,
+                    # we should add all rosdefs files that are found in parent directories,
+                    # and that are not already in ros_search_path
+                    rosdef_files = []
+                    ros_pkg = fullname.partition('.')[0]
+                    walking_path = path
+                    while walking_path != os.path.dirname(walking_path) and not os.path.exists(os.path.join(walking_path, 'package.xml')):
+                        walking_path = os.path.dirname(walking_path)
+                        if walking_path not in ros_search_path.get(ros_pkg, []):
+                            if os.path.exists(os.path.join(walking_path, loader_origin_subdir)):
+                                msg_walking_path = os.path.join(walking_path, loader_origin_subdir)
+                                rosdef_files += [os.path.join(msg_walking_path, f) for f in os.listdir(msg_walking_path) if f.endswith(loader_file_extension)]
+
+                    # TODO : dynamic in memory generation (we do not need the file ultimately...)
+                    self.gen_rosdefs = genros_py(
+                        rosdef_files=rosdef_files,  # generate all message's python code at once.
+                        package=self.rospackage,
+                        outdir_pkg=self.outdir_pkg,
+                        # include_path should be automatically taken care of by generator API (+ import mechanism)
+                    )
+                    init_path = None
+                    for pyf in self.gen_rosdefs:
+                        if pyf.endswith('__init__.py'):
+                            init_path = pyf
 
                     if not init_path:
                         raise ImportError("__init__.py file not found".format(init_path))

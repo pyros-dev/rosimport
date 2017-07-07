@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import os
 import sys
 
 from ._ros_generator import (
@@ -15,6 +16,7 @@ from ._ros_directory_finder import get_supported_ros_loaders
 
 from ._ros_generator import generate_rosdefs_py, genros_py, ros_search_path
 
+from ._utils import _verbose_message
 
 # Making the activation explicit for now
 def activate_hook_for(*paths):
@@ -45,6 +47,9 @@ def activate_hook_for(*paths):
     # since we need to replace the default importer.
     sys.path_importer_cache.clear()
 
+    for p in paths:
+        if not os.path.exists(p):
+            _verbose_message("WARNING : p does not exists. Please double check your environment setup...")
     # TODO : extend with os.environ['ROS_PACKAGE_PATH'] ??
     sys.path.extend(paths)
 
