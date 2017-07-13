@@ -184,6 +184,10 @@ class TestGenerateWithDeps(unittest.TestCase):
             search_path=search_path
         )
 
+        assert sitedir == sitedir_deps
+        assert generated_msg_code == os.path.join(sitedir, 'subtest_gen_srvs_deps', 'msg', '__init__.py')
+        assert generated_srv_code == os.path.join(sitedir, 'subtest_gen_srvs_deps', 'subtests', 'srv', '__init__.py')
+
         # Python code was generated properly
         assert os.path.exists(os.path.join(sitedir_deps, 'subtest_gen_srvs_deps', 'msg')), os.path.join(sitedir_deps, 'subtest_gen_srvs_deps', 'msg')
         assert os.path.exists(os.path.join(sitedir_deps, 'subtest_gen_srvs_deps', 'msg', '__init__.py')), os.path.join(sitedir_deps, 'subtest_gen_srvs_deps', 'msg', '__init__.py')

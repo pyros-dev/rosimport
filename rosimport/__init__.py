@@ -22,9 +22,9 @@ def activate_hook_for(*paths):
         # We should plug filefinder first to avoid plugging ROSDirectoryFinder, when it is not a ROS thing...
         import filefinder2
         filefinder2.activate()
-
-    # TODO : python2 support ??
-    from importlib.machinery import PathFinder
+        PathFinder = filefinder2.NamespaceMetaFinder2
+    else:
+        from importlib.machinery import PathFinder
 
     # We need to be before FileFinder to be able to find our '.msg' and '.srv' files without making a namespace package
     supported_loaders = _ros_directory_finder.get_supported_ros_loaders()
@@ -42,7 +42,7 @@ def activate_hook_for(*paths):
         sys.path_hooks.insert(1, ros_hook)
         #sys.path_hooks.append(ros_hook)
 
-    # adding metahook
+    # adding metahook, before the usual pathfinder, to avoid interferences with python namespace mechanism...
     sys.meta_path.insert(sys.meta_path.index(PathFinder), _ros_directory_finder.ROSPathFinder)
 
 
