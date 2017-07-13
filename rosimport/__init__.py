@@ -5,16 +5,13 @@ import sys
 
 from ._ros_generator import (
     MsgDependencyNotFound,
-    ros_search_path,
-    genros_py,
-    generate_rosdefs_py,
+    genrosmsg_py,
+    genrossrv_py,
 )
 
-from ._rosdef_loader import ROSMsgLoader, ROSSrvLoader
+from ._rosdef_loader import ROSMsgLoader, ROSSrvLoader, ros_import_search_path
 
 from ._ros_directory_finder import get_supported_ros_loaders
-
-from ._ros_generator import generate_rosdefs_py, genros_py, ros_search_path
 
 from ._utils import _verbose_message
 
@@ -25,6 +22,9 @@ def activate_hook_for(*paths):
         # We should plug filefinder first to avoid plugging ROSDirectoryFinder, when it is not a ROS thing...
         import filefinder2
         filefinder2.activate()
+
+    # TODO : python2 support ??
+    from importlib.machinery import PathFinder
 
     # We need to be before FileFinder to be able to find our '.msg' and '.srv' files without making a namespace package
     supported_loaders = _ros_directory_finder.get_supported_ros_loaders()
@@ -42,6 +42,10 @@ def activate_hook_for(*paths):
         sys.path_hooks.insert(1, ros_hook)
         #sys.path_hooks.append(ros_hook)
 
+    # adding metahook
+    sys.meta_path.insert(sys.meta_path.index(PathFinder), _ros_directory_finder.ROSPathFinder)
+
+
     # Resetting sys.path_importer_cache
     # to support the case where we have an implicit (msg/srv) package inside an already loaded package,
     # since we need to replace the default importer.
@@ -57,6 +61,10 @@ def activate_hook_for(*paths):
 def deactivate_hook_for(*paths):
     # CAREFUL : Even though we remove the path from sys.path,
     # initialized finders will remain in sys.path_importer_cache
+
+    # removing metahook
+    sys.meta_path.remove(_ros_directory_finder.ROSPathFinder)
+
     for p in paths:
         sys.path.remove(p)
 

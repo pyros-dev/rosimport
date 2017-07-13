@@ -1,5 +1,7 @@
+bool test_bool
+
 # test that embedded message types get generated properly
-# std_msgs/Bool test_ros_std_bool
+# std_msgs/Bool test_std_bool
 
 # test relative dependencies
-TestRosMsg test_ros_msg
+TestRosMsgDeps test_ros_deps

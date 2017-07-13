@@ -8,7 +8,7 @@ import tempfile
 import shutil
 
 
-from rosimport import genros_py, ros_search_path
+from rosimport import genrosmsg_py, genrossrv_py
 
 """
 A module to setup custom importer for .msg and .srv files
@@ -27,6 +27,61 @@ import sys
 import logging
 
 
+# Class to allow dynamic search of packages
+class RosSearchPath(dict):
+    """
+    Class to allow dynamic search of packages.
+    This is where we hook up into python import mechanism in order to generate and discover
+    packages and messages we are depending on.
+
+    But it should not be used during the generation of multiple messages in only one package,
+    as this is too tricky to get right, and too easy to break by mistake.
+    """
+    def __init__(self, **ros_package_paths):
+        # we use the default ROS_PACKAGE_PATH if setup in environment
+        package_paths = {}  # TODO : os.environ.get('ROS_PACKAGE_PATH', {}) OR NOT ?
+        # we add any extra path
+        package_paths.update(ros_package_paths)
+        super(RosSearchPath, self).__init__(package_paths)
+
+    def try_import(self, item):
+        try:
+            # we need to import the .msg submodule (only one usable as dependency)
+            mod = importlib.import_module(item + '.msg')
+            # import succeeded : we should get the namespace path
+            # and add it to the list of paths to avoid going through this all over again...
+            for p in mod.__path__:
+                # Note we want dependencies here. dependencies are ALWAYS '.msg' files in 'msg' directory.
+                msg_path = os.path.join(p)
+                # We add a path only if we can find the 'msg' directory
+                self[item] = self.get(item, []) + ([msg_path] if os.path.exists(msg_path) else [])
+            return mod
+        except ImportError:
+            # import failed
+            return None
+
+    def __contains__(self, item):
+        """ True if D has a key k, else False. """
+        has = super(RosSearchPath, self).__contains__(item)
+        if not has:  # attempt importing. solving ROS path setup problem with python import paths setup.
+            self.try_import(item)
+            # Note : if ROS is setup, rospkg.RosPack can find packages
+        # try again (might work now)
+        return super(RosSearchPath, self).__contains__(item)
+
+    def __getitem__(self, item):
+        """ x.__getitem__(y) <==> x[y] """
+        got = super(RosSearchPath, self).get(item)
+        if got is None:
+            # attempt discovery by relying on python core import feature.
+            self.try_import(item)
+            # Note : if ROS is setup, rospkg.RosPack can find packages
+        return super(RosSearchPath, self).get(item)
+
+# singleton instance, to keep used ros package paths in cache
+ros_import_search_path = RosSearchPath()
+
+
 def RosLoader(rosdef_extension):
     """
     Function generating ROS loaders.
@@ -36,10 +91,12 @@ def RosLoader(rosdef_extension):
         loader_origin_subdir = 'msg'
         loader_file_extension = rosdef_extension
         loader_generated_subdir = 'msg'
+        loader_generator = genrosmsg_py
     elif rosdef_extension == '.srv':
         loader_origin_subdir = 'srv'
         loader_file_extension = rosdef_extension
         loader_generated_subdir = 'srv'
+        loader_generator = genrossrv_py
     else:
         raise RuntimeError("RosLoader for a format {0} other than .msg or .srv is not supported".format(rosdef_extension))
 
@@ -55,10 +112,29 @@ def RosLoader(rosdef_extension):
     class ROSDefLoader(FileLoader):
         """
         Python Loader for Rosdef files.
-        Note : Only messages at the lowest level of package
-               along with package.xml, like for usual ROS message definitions,
-               are usable as dependencies of current and other messages.
+        Note : We support ROS layout :
+        - msg/myMsg.msg
+        - srv/mySrv.srv
+        - my_pkg/__init__.py  # doesnt really matters ( we rely on PEP 420 )
+        OR inside the python code:
+        - my_pkg/__init__.py  # doesnt really matters ( we rely on PEP 420 )
+        - my_pkg/msg/myMsg.msg
+        - my_pkg/srv/mySrv.srv
+
+        BUT the following is also importable relatively,
+        which is especially useful for tests or intra-package ROS communication,
+        although it cannot be used as another package dependency (due to ROS limitations)
+
+        - my_pkg/__init__.py  # doesnt really matters ( we rely on PEP 420 )
+        - my_pkg/subpkg/__init__.py # doesnt really matters ( we rely on PEP 420 )
+        - my_pkg/subpkg/msg/myMsg.msg
+        - my_pkg/subpkg/srv/mySrv.srv
+
+        In that case myMsg.py will also be generated under mypkg.msg,
+        but can be imported relatively from my_pkg/subpkg/module.py with "from .msg import mypkg"
         """
+
+        rosimport_tempdir = os.path.join(tempfile.gettempdir(), 'rosimport')
 
         def __init__(self, fullname, path):
 
@@ -69,58 +145,56 @@ def RosLoader(rosdef_extension):
             # Doing this in each loader, in case we are running from different processes,
             # avoiding to reload from same file (especially useful for boxed tests).
             # But deterministic path to avoid regenerating from the same interpreter
-            self.rosimport_path = os.path.join(tempfile.gettempdir(), 'rosimport', str(os.getpid()))
-            if not os.path.exists(self.rosimport_path):
-                os.makedirs(self.rosimport_path)
+            rosimport_path = os.path.join(self.rosimport_tempdir, str(os.getpid()))
+            if not os.path.exists(rosimport_path):
+                os.makedirs(rosimport_path)
 
-            self.rospackage = fullname.partition('.')[0]
-            self.outdir_pkg = os.path.join(self.rosimport_path, self.rospackage)
+            rospackage = fullname.partition('.')[0]
 
             if os.path.isdir(path):
-                if path.endswith(loader_origin_subdir) and any([f.endswith(loader_file_extension) for f in os.listdir(path)]):  # if we get a non empty 'msg' folder
-
-                    # The msg/srv subpackage should be generated all at once.
-                    # If same package is present with same PID,
-                    # it s a full new import in a new process, so we should clean existing code.
-                    if os.path.exists(os.path.join(self.outdir_pkg, loader_generated_subdir)):
-                        shutil.rmtree(os.path.join(self.outdir_pkg, loader_generated_subdir))
-
-                    # CAREFUL : because of import logic and message generation logic for dependencies,
-                    # we should add all rosdefs files that are found in parent directories,
-                    # and that are not already in ros_search_path
-                    rosdef_files = []
-                    ros_pkg = fullname.partition('.')[0]
-                    walking_path = path
-                    while walking_path != os.path.dirname(walking_path) and not os.path.exists(os.path.join(walking_path, 'package.xml')):
-                        walking_path = os.path.dirname(walking_path)
-                        if walking_path not in ros_search_path.get(ros_pkg, []):
-                            if os.path.exists(os.path.join(walking_path, loader_origin_subdir)):
-                                msg_walking_path = os.path.join(walking_path, loader_origin_subdir)
-                                rosdef_files += [os.path.join(msg_walking_path, f) for f in os.listdir(msg_walking_path) if f.endswith(loader_file_extension)]
+                # if we get a package name ending with msg or srv and a non empty directory
+                if (
+                            fullname.endswith(loader_origin_subdir) and
+                            any([f.endswith(loader_file_extension) for f in os.listdir(path)])
+                ):
 
                     # TODO : dynamic in memory generation (we do not need the file ultimately...)
-                    self.gen_rosdefs = genros_py(
-                        rosdef_files=rosdef_files,  # generate all message's python code at once.
-                        package=self.rospackage,
-                        outdir_pkg=self.outdir_pkg,
-                        # include_path should be automatically taken care of by generator API (+ import mechanism)
+                    outdir, gen_rosdef_pkgpath = loader_generator(
+                        # generate message's python code at once, for this package level.
+                        rosdef_files=[os.path.join(path, f) for f in os.listdir(path)],
+                        package=fullname,
+                        sitedir=rosimport_path,
+                        search_path=ros_import_search_path,
                     )
-                    init_path = None
-                    for pyf in self.gen_rosdefs:
-                        if pyf.endswith('__init__.py'):
-                            init_path = pyf
+                    # TODO : handle thrown exception (cleaner than hacking the search path dict...)
+                    # try:
+                    #     generator.generate_messages(package, rosfiles, outdir, search_path)
+                    # except genmsg.MsgNotFound as mnf:
+                    #     try:
+                    #         mod = importlib.import_module(mnf.package)
+                    #         # import succeeded : we should get the namespace path that has '/msg'
+                    #         # and add it to the list of paths to avoid going through this all over again...
+                    #         for p in mod.__path__:
+                    #             # Note we want dependencies here. dependencies are ALWAYS '.msg' files in 'msg' directory.
+                    #             msg_path = os.path.join(p, genmsg_MSG_DIR)
+                    #             # We add a path only if we can find the 'msg' directory
+                    #             search_path[mnf.package] = search_path[mnf.package] + ([msg_path] if os.path.exists(msg_path) else [])
+                    #         # Try generation again
+                    #         generator.generate_messages(package, rosfiles, outdir, search_path)
+                    #     except ImportError:
+                    #         # import failed
+                    #         return None
 
-                    if not init_path:
-                        raise ImportError("__init__.py file not found".format(init_path))
-                    if not os.path.exists(init_path):
-                        raise ImportError("{0} file not found".format(init_path))
+                    if not os.path.exists(gen_rosdef_pkgpath):
+                        raise ImportError("{0} file not found".format(gen_rosdef_pkgpath))
 
                     # relying on usual source file loader since we have generated normal python code
-                    super(ROSDefLoader, self).__init__(fullname, init_path)
+                    super(ROSDefLoader, self).__init__(fullname, gen_rosdef_pkgpath)
 
         def get_gen_path(self):
             """Returning the generated path matching the import"""
-            return os.path.join(self.outdir_pkg, loader_generated_subdir)
+            return self.path  # TODO : maybe useless ?
+            # return os.path.join(self.outdir_pkg, loader_generated_subdir)
 
         def __repr__(self):
             return "ROSDefLoader/{0}({1}, {2})".format(loader_file_extension, self.name, self.path)
