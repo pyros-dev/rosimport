@@ -54,9 +54,8 @@ from ._utils import (
 )
 
 
-
 class TestImportLibMsg(BaseMsgSubTestCase):
-    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'rosdeps')
+    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps')
 
     @classmethod
     def setUpClass(cls):
@@ -217,9 +216,10 @@ class TestImportLibMsg(BaseMsgSubTestCase):
 
         assert __package__
         # Verify that files exists and are dynamically importable
-        test_msgs = importlib.import_module('.msg', package=__package__)
+        subtest_msgs = importlib.import_module('.msg', package=__package__)
+        test_msgs = importlib.import_module('tests.msg', package=__package__)
 
-        self.assert_test_message_classes(test_msgs.TestMsg, test_msgs.TestMsgDeps, test_msgs.TestRosMsgDeps, test_msgs.TestRosMsg)
+        self.assert_test_message_classes(subtest_msgs.SubTestMsg, subtest_msgs.SubTestMsgDeps, test_msgs.TestRosMsgDeps, test_msgs.TestRosMsg)
 
         if hasattr(importlib, 'reload'):  # recent version of importlib
             # attempting to reload
@@ -234,9 +234,10 @@ class TestImportLibMsg(BaseMsgSubTestCase):
 
         assert __package__
         # Verify that files exists and are dynamically importable
+        subtest_msgs = importlib.import_module('tests.subtests.msg')
         test_msgs = importlib.import_module('tests.msg')
 
-        self.assert_test_message_classes(test_msgs.TestMsg, test_msgs.TestMsgDeps, test_msgs.TestRosMsgDeps, test_msgs.TestRosMsg)
+        self.assert_test_message_classes(subtest_msgs.SubTestMsg, subtest_msgs.SubTestMsgDeps, test_msgs.TestRosMsgDeps, test_msgs.TestRosMsg)
 
         if hasattr(importlib, 'reload'):  # recent version of importlib
             # attempting to reload
@@ -271,9 +272,9 @@ class TestImportLibMsg(BaseMsgSubTestCase):
 
 class TestImportLibSrv(BaseSrvSubTestCase):
 
-    ros_comm_msgs_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'rosdeps', 'ros_comm_msgs')
+    ros_comm_msgs_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps', 'ros_comm_msgs')
     # For dependencies
-    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'rosdeps')
+    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps')
 
     @classmethod
     def setUpClass(cls):
@@ -430,40 +431,40 @@ class TestImportLibSrv(BaseSrvSubTestCase):
 
         assert __package__
         # Verify that files exists and are dynamically importable
-        test_srvs = importlib.import_module('.srv', package=__package__)
-        test_msgs = importlib.import_module('.msg', package=__package__)
+        subtest_srvs = importlib.import_module('.srv', package=__package__)
+        test_msgs = importlib.import_module('tests.msg', package=__package__)
 
-        self.assert_test_service_classes(test_srvs.TestSrv, test_srvs.TestSrvRequest, test_srvs.TestSrvResponse,
-                                         test_srvs.TestSrvDeps, test_srvs.TestSrvDepsRequest, test_srvs.TestSrvDepsResponse,
+        self.assert_test_service_classes(subtest_srvs.SubTestSrv, subtest_srvs.SubTestSrvRequest, subtest_srvs.SubTestSrvResponse,
+                                         subtest_srvs.SubTestSrvDeps, subtest_srvs.SubTestSrvDepsRequest, subtest_srvs.SubTestSrvDepsResponse,
                                          test_msgs.TestRosMsgDeps, test_msgs.TestRosMsg)
 
         if hasattr(importlib, 'reload'):  # recent version of importlib
             # attempting to reload
-            importlib.reload(test_srvs)
+            importlib.reload(subtest_srvs)
         else:
             pass
 
-        assert test_srvs is not None
+        assert subtest_srvs is not None
 
     @unittest.skipIf(not hasattr(importlib, 'import_module'), reason="importlib does not have attribute import_module")
     def test_importlib_importmodule_relative_srv_from_absolute(self):
 
         assert __package__
         # Verify that files exists and are dynamically importable
-        test_srvs = importlib.import_module('tests.srv')
+        subtest_srvs = importlib.import_module('tests.subtests.srv')
         test_msgs = importlib.import_module('tests.msg')
 
-        self.assert_test_service_classes(test_srvs.TestSrv, test_srvs.TestSrvRequest, test_srvs.TestSrvResponse,
-                                         test_srvs.TestSrvDeps, test_srvs.TestSrvDepsRequest, test_srvs.TestSrvDepsResponse,
+        self.assert_test_service_classes(subtest_srvs.SubTestSrv, subtest_srvs.SubTestSrvRequest, subtest_srvs.SubTestSrvResponse,
+                                         subtest_srvs.SubTestSrvDeps, subtest_srvs.SubTestSrvDepsRequest, subtest_srvs.SubTestSrvDepsResponse,
                                          test_msgs.TestRosMsgDeps, test_msgs.TestRosMsg)
 
         if hasattr(importlib, 'reload'):  # recent version of importlib
             # attempting to reload
-            importlib.reload(test_srvs)
+            importlib.reload(subtest_srvs)
         else:
             pass
 
-        assert test_srvs is not None
+        assert subtest_srvs is not None
 
     @unittest.skipIf(not hasattr(importlib, 'import_module'),
                      reason="importlib does not have attribute import_module")

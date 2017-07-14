@@ -32,9 +32,9 @@ class BaseMsgTestCase(unittest.TestCase):
 
         self.assertTrue(TestMsgDeps(
             test_bool=True,
-            test_std_bool=True,  # implicit import of std_msgs
+            #test_std_bool=True,  # implicit import of std_msgs
             test_ros_deps=TestRosMsgDeps(  # dependency imported
-                test_ros_std_bool=True,  # implicit import of std_msgs
+                #test_ros_std_bool=True,  # implicit import of std_msgs
                 test_ros_msg=TestRosMsg(test_ros_bool=True)  # dependency of dependency
             )))
 
@@ -98,12 +98,12 @@ class BaseSrvTestCase(unittest.TestCase):
         self.assertTrue(TestSrvDepsRequest(
             test_request='Test',
             test_ros_deps=TestRosMsgDeps(  # dependency imported
-                test_ros_std_bool=True,  # implicit import of std_msgs
+                #test_ros_std_bool=True,  # implicit import of std_msgs
                 test_ros_msg=TestRosMsg(test_ros_bool=True)  # dependency of dependency
             )))
         self.assertTrue(TestSrvDepsResponse(
             test_response='Test',
-            test_std_bool=True,  # implicit import of std_msgs
+            #test_std_bool=True,  # implicit import of std_msgs
         ))
 
     def assert_std_service_classes(self, SetBool, SetBoolRequest, SetBoolResponse):
