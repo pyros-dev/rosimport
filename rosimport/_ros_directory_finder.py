@@ -87,19 +87,24 @@ class ROSPathFinder(PathFinder):
                 rosentry = os.path.dirname(rootentry)
 
                 # we need to keep order here to maintain strict dependency and generation order
-                entrymap = [
-                    (rospkg + '.msg', rosentry),
-                    (rospkg + '.msg', rootentry),
-                    (fullname, entry)
-                ]
+                entrymap = []
+                # we are trying to find root messages if we dont have a root package, or if the directory is different
+                if rospkg + '.msg' != fullname or rosentry != entry:
+                    entrymap.append((rospkg + '.msg', rosentry))
+                if rospkg + '.msg' != fullname or rootentry != entry:
+                    entrymap.append((rospkg + '.msg', rootentry))
+                # This should always be last
+                entrymap.append((fullname, entry))
 
+                loader = None
                 for n, e in entrymap:
                     finder = cls._path_importer_cache(e)
                     if finder is not None:
-                        if n == fullname:
-                            loader = finder.find_module(n)
-                        else:
-                            finder.find_module(n)
+                        # creatign the loader will generate the python code and make sure it is importable.
+                        l = finder.find_module(n)
+                        if l and n == fullname:  # we prevent erasing a loader with None or a different loader
+                            # Note one loader will aggregate root entries like repo/msg and repo/pkg/msg
+                            loader = l
             # else:
             # other cases handled later by the default python pathfinder.
 

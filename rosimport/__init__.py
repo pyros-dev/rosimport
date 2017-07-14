@@ -11,62 +11,55 @@ from ._ros_generator import (
 
 from ._rosdef_loader import ROSMsgLoader, ROSSrvLoader, ros_import_search_path
 
-from ._ros_directory_finder import get_supported_ros_loaders
+from ._ros_directory_finder import get_supported_ros_loaders, ROSDirectoryFinder, ROSPathFinder
 
 from ._utils import _verbose_message
 
-# Making the activation explicit for now
-def activate_hook_for(*paths):
+
+def activate():
     """Install the path-based import components."""
     if sys.version_info < (3, 4):
         # We should plug filefinder first to avoid plugging ROSDirectoryFinder, when it is not a ROS thing...
         import filefinder2
         filefinder2.activate()
         PathFinder = filefinder2.NamespaceMetaFinder2
+
+        # We need to be before FileFinder to be able to find our '.msg' and '.srv' files without making a namespace package
+        # Note this must be early in the path_hook list, since we change the logic
+        # and a namespace package becomes a ros importable package.
+        sys.path_hooks.insert(
+            sys.path_hooks.index(filefinder2.path_hook),
+            ROSDirectoryFinder.path_hook(*get_supported_ros_loaders())
+        )
     else:
         from importlib.machinery import PathFinder
 
-    # We need to be before FileFinder to be able to find our '.msg' and '.srv' files without making a namespace package
-    supported_loaders = _ros_directory_finder.get_supported_ros_loaders()
-    ros_hook = _ros_directory_finder.ROSDirectoryFinder.path_hook(*supported_loaders)
-    if sys.version_info < (3, 4):
-        # Note this must be early in the list (before filefinder2),
-        # since we change the logic regarding what is a package or not
-        sys.path_hooks.insert(1, ros_hook)
-        # sys.path_hooks.append(ros_hook)
-    else:
-        # Note this must be early in the path_hook list, since we change the logic
-        # and a namespace package becomes a ros importable package.
         # Note : On py 3.5 the import system doesnt use hooks after FileFinder since it assumes
         # any directory not containing __init__.py is a namespace package
-        sys.path_hooks.insert(1, ros_hook)
-        #sys.path_hooks.append(ros_hook)
+        sys.path_hooks.insert(1,
+            ROSDirectoryFinder.path_hook(*get_supported_ros_loaders())
+        )
 
     # adding metahook, before the usual pathfinder, to avoid interferences with python namespace mechanism...
-    sys.meta_path.insert(sys.meta_path.index(PathFinder), _ros_directory_finder.ROSPathFinder)
-
+    sys.meta_path.insert(sys.meta_path.index(PathFinder), ROSPathFinder)
 
     # Resetting sys.path_importer_cache
     # to support the case where we have an implicit (msg/srv) package inside an already loaded package,
     # since we need to replace the default importer.
     sys.path_importer_cache.clear()
 
-    for p in paths:
-        if not os.path.exists(p):
-            _verbose_message("WARNING : p does not exists. Please double check your environment setup...")
-    # TODO : extend with os.environ['ROS_PACKAGE_PATH'] ??
-    sys.path.extend(paths)
 
-
-def deactivate_hook_for(*paths):
+def deactivate():
     # CAREFUL : Even though we remove the path from sys.path,
     # initialized finders will remain in sys.path_importer_cache
 
     # removing metahook
-    sys.meta_path.remove(_ros_directory_finder.ROSPathFinder)
+    sys.meta_path.remove(ROSPathFinder)
+    sys.path_hooks.remove(ROSDirectoryFinder.path_hook(*get_supported_ros_loaders()))
 
-    for p in paths:
-        sys.path.remove(p)
+    # Resetting sys.path_importer_cache to get rid of previous importers
+    sys.path_importer_cache.clear()
+
 
 __all__ = [
     'MsgDependencyNotFound',

@@ -54,7 +54,7 @@ class RosSearchPath(dict):
                 # Note we want dependencies here. dependencies are ALWAYS '.msg' files in 'msg' directory.
                 msg_path = os.path.join(p)
                 # We add a path only if we can find the 'msg' directory
-                self[item] = self.get(item, []) + ([msg_path] if os.path.exists(msg_path) else [])
+                self[item] = self.get(item, set() | ({msg_path} if os.path.exists(msg_path) else set()))
             return mod
         except ImportError:
             # import failed
