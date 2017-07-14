@@ -89,17 +89,13 @@ setuptools.setup(name='rosimport',
     author_email='asmodehn@gmail.com',
     license='MIT',
     packages=[
-        'rosimport',
-        'rosimport.tests',
+        'rosimport'
     ],
     include_package_data=True,  # to rely on MANIFEST.in
     # Reference for optional dependencies :
     # http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources
     install_requires=[
         'filefinder2>=0.2; python_version<"3.4"',
-        # this is needed as install dependency since we embed tests in the package.
-        'pytest>=2.5.1',
-        'pytest-xdist',  # for --boxed (careful with the version it will be moved out of xdist)
     ],
     cmdclass={
         'prepare_release': PrepareReleaseCommand,
