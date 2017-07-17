@@ -38,8 +38,13 @@ class RosSearchPath(dict):
     as this is too tricky to get right, and too easy to break by mistake.
     """
     def __init__(self, **ros_package_paths):
-        # we use the default ROS_PACKAGE_PATH if setup in environment
-        package_paths = {}  # TODO : os.environ.get('ROS_PACKAGE_PATH', {}) OR NOT ?
+        # we use the default ROS_PACKAGE_PATH if already setup in environment.
+        # This allows us to find message definitions in a ROS distro (and collaborate with pyros_setup)
+        package_paths = {}
+        for distropath in [d for d in os.environ.get('ROS_PACKAGE_PATH', '').split(':') if os.path.exists(d)]:
+            for p in [pkgd for pkgd in os.listdir(distropath) if os.path.exists(os.path.join(distropath, pkgd, 'msg'))]:
+                package_paths[p] = package_paths.get(p, set()) | {os.path.join(distropath, p, 'msg')}
+
         # we add any extra path
         package_paths.update(ros_package_paths)
         super(RosSearchPath, self).__init__(package_paths)
