@@ -17,11 +17,7 @@ import site
 
 from ._utils import load_from_path
 
-from rosimport import genrosmsg_py, genrossrv_py, activate_hook_for, deactivate_hook_for
-
-if (2, 7) <= sys.version_info < (3, 4):
-    import filefinder2
-    filefinder2.activate()
+from rosimport import genrosmsg_py, genrossrv_py, activate, deactivate
 
 
 class TestGenerateBasic(unittest.TestCase):
@@ -87,16 +83,6 @@ class TestGenerateBasic(unittest.TestCase):
 
 
 class TestGenerateWithDeps(unittest.TestCase):
-
-    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'rosdeps')
-
-    @classmethod
-    def setUpClass(cls):
-        activate_hook_for(cls.rosdeps_path)
-
-    @classmethod
-    def tearDownClass(cls):
-        deactivate_hook_for(cls.rosdeps_path)
 
     def test_generate_msgpkg_deps_usable(self):
         """ Testing our generated msg package is importable.

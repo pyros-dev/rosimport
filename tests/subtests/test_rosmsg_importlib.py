@@ -33,9 +33,10 @@ import unittest
 # Ref : http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
 
 import importlib
+import site
 
 # Importing importer module
-from rosimport import activate_hook_for, deactivate_hook_for
+from rosimport import activate, deactivate
 
 # importlib
 # https://pymotw.com/3/importlib/index.html
@@ -57,13 +58,16 @@ from ._utils import (
 class TestImportLibMsg(BaseMsgSubTestCase):
     rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps')
 
+
     @classmethod
     def setUpClass(cls):
-        activate_hook_for(cls.rosdeps_path)
+        # This is used for message definitions, not for python code
+        site.addsitedir(cls.rosdeps_path)
+        activate()
 
     @classmethod
     def tearDownClass(cls):
-        deactivate_hook_for(cls.rosdeps_path)
+        deactivate()
 
     @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
     def test_importlib_import_absolute_msg(self):
@@ -82,16 +86,18 @@ class TestImportLibMsg(BaseMsgSubTestCase):
     @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
     def test_importlib_import_relative_msg(self):
         # Verify that files exists and are importable
-        test_msgs = importlib.__import__('msg', globals=globals(), level=1)
+        subtest_msgs = importlib.__import__('msg', globals=globals(), level=1)
+        test_msgs = importlib.__import__('tests.msg')
+        test_msgs = test_msgs.msg
 
-        self.assert_test_message_classes(test_msgs.TestMsg, test_msgs.TestMsgDeps, test_msgs.TestRosMsgDeps, test_msgs.TestRosMsg)
+        self.assert_test_message_classes(subtest_msgs.SubTestMsg, subtest_msgs.SubTestMsgDeps, test_msgs.TestRosMsgDeps, test_msgs.TestRosMsg)
 
     # BROKEN 3.4 ?
     @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
     def test_importlib_import_relative_class_raises(self):
         assert __package__
         with self.assertRaises(ImportError):
-            importlib.__import__('msg.TestMsg', globals=globals(), level=1)
+            importlib.__import__('msg.SubTestMsg', globals=globals(), level=1)
 
     # UNTESTED (do we care ?)
     # @unittest.skipIf(not hasattr(importlib, 'find_loader') or not hasattr(importlib, 'load_module'),
@@ -278,11 +284,14 @@ class TestImportLibSrv(BaseSrvSubTestCase):
 
     @classmethod
     def setUpClass(cls):
-        activate_hook_for(cls.rosdeps_path, cls.ros_comm_msgs_path)
+        # This is used for message definitions, not for python code
+        site.addsitedir(cls.rosdeps_path)
+        site.addsitedir(cls.ros_comm_msgs_path)
+        activate()
 
     @classmethod
     def tearDownClass(cls):
-        deactivate_hook_for(cls.rosdeps_path, cls.ros_comm_msgs_path)
+        deactivate()
 
     @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
     def test_importlib_import_absolute_srv(self):
@@ -301,11 +310,12 @@ class TestImportLibSrv(BaseSrvSubTestCase):
     @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
     def test_importlib_import_relative_srv(self):
         # Verify that files exists and are importable
-        test_srvs = importlib.__import__('srv', globals=globals(), level=1)
-        test_msgs = importlib.__import__('msg', globals=globals(), level=1)
+        subtest_srvs = importlib.__import__('srv', globals=globals(), level=1)
+        test_msgs = importlib.__import__('tests.msg')
+        test_msgs = test_msgs.msg
 
-        self.assert_test_service_classes(test_srvs.TestSrv, test_srvs.TestSrvRequest, test_srvs.TestSrvResponse,
-                                         test_srvs.TestSrvDeps, test_srvs.TestSrvDepsRequest, test_srvs.TestSrvDepsResponse,
+        self.assert_test_service_classes(subtest_srvs.SubTestSrv, subtest_srvs.SubTestSrvRequest, subtest_srvs.SubTestSrvResponse,
+                                         subtest_srvs.SubTestSrvDeps, subtest_srvs.SubTestSrvDepsRequest, subtest_srvs.SubTestSrvDepsResponse,
                                          test_msgs.TestRosMsgDeps, test_msgs.TestRosMsg)
 
     # UNTESTED : do we care ?

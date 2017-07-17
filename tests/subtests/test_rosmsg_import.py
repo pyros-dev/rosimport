@@ -36,10 +36,11 @@ import unittest
 
 # Ref : http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
 
+import site
 import importlib
 
 # Importing importer module
-from rosimport import activate_hook_for, deactivate_hook_for
+from rosimport import activate, deactivate
 
 # importlib
 # https://pymotw.com/3/importlib/index.html
@@ -53,18 +54,19 @@ from ._utils import (
 )
 
 
-
 class SubTestImportMsg(BaseMsgSubTestCase):
 
     rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps')
 
     @classmethod
     def setUpClass(cls):
-        activate_hook_for(cls.rosdeps_path)
+        # This is used for message definitions, not for python code
+        site.addsitedir(cls.rosdeps_path)
+        activate()
 
     @classmethod
     def tearDownClass(cls):
-        deactivate_hook_for(cls.rosdeps_path)
+        deactivate()
 
     def test_import_absolute_msg(self):
         print_importers()
@@ -139,11 +141,14 @@ class SubTestImportSrv(BaseSrvSubTestCase):
 
     @classmethod
     def setUpClass(cls):
-        activate_hook_for(cls.rosdeps_path, cls.ros_comm_msgs_path)
+        # This is used for message definitions, not for python code
+        site.addsitedir(cls.rosdeps_path)
+        site.addsitedir(cls.ros_comm_msgs_path)
+        activate()
 
     @classmethod
     def tearDownClass(cls):
-        deactivate_hook_for(cls.rosdeps_path, cls.ros_comm_msgs_path)
+        deactivate()
 
     def test_import_absolute_srv(self):
         print_importers()

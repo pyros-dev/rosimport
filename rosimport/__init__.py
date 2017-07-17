@@ -15,10 +15,11 @@ from ._ros_directory_finder import get_supported_ros_loaders, ROSDirectoryFinder
 
 from ._utils import _verbose_message
 
+ros_path_hook = ROSDirectoryFinder.path_hook(*get_supported_ros_loaders())
+
 
 def activate():
     """Install the path-based import components."""
-    ros_path_hook = ROSDirectoryFinder.path_hook(*get_supported_ros_loaders())
     if sys.version_info < (3, 4):
         # We should plug filefinder first to avoid plugging ROSDirectoryFinder, when it is not a ROS thing...
         import filefinder2
@@ -54,7 +55,7 @@ def deactivate():
 
     # removing metahook
     sys.meta_path.remove(ROSPathFinder)
-    sys.path_hooks.remove(ROSDirectoryFinder.path_hook(*get_supported_ros_loaders()))
+    sys.path_hooks.remove(ros_path_hook)
 
     # Resetting sys.path_importer_cache to get rid of previous importers
     sys.path_importer_cache.clear()
