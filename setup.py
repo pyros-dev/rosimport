@@ -95,7 +95,7 @@ setuptools.setup(name='rosimport',
     # Reference for optional dependencies :
     # http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources
     install_requires=[
-        'filefinder2>=0.2; python_version<"3.4"',
+        'filefinder2>=0.3; python_version<"3.4"',
     ],
     cmdclass={
         'prepare_release': PrepareReleaseCommand,
