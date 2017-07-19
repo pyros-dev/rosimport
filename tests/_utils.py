@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import os
 import unittest
 
 def print_importers():
@@ -9,10 +10,29 @@ def print_importers():
     print('PATH:'),
     pprint.pprint(sys.path)
     print()
-    print('IMPORTERS:')
+    print('IMPORTERS CACHE: {')
     for name, cache_value in sys.path_importer_cache.items():
         name = name.replace(sys.prefix, '...')
         print('%s: %r' % (name, cache_value))
+    print('}')
+
+
+def print_importers_of(module):
+    import sys
+    import pprint
+
+    print('MODULE:'),
+    pprint.pprint(module)
+    mod_path = module.__file__.split(os.sep)
+    print()
+    print('IMPORTERS USED: {')
+    for i in range(len(mod_path)-1):
+        parpath = os.sep.join(mod_path[:len(mod_path) - i])
+        if parpath in sys.path_importer_cache:
+            cached_imp = sys.path_importer_cache[parpath]
+            parpath = parpath.replace(sys.prefix, '...')
+            print('%s: %r' % (parpath, cached_imp))
+    print('}')
 
 
 class BaseMsgTestCase(unittest.TestCase):

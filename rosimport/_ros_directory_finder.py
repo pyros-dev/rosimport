@@ -157,7 +157,8 @@ class ROSDirectoryFinder(FileFinder):
             )
             # This is needed to not override default behavior in path where there is NO ROS files/directories.
 
-        self.path = path or '.'
+        # Since we can have a msg folder "inside" a python package hierarchy, we need to also "be" a Filefinder
+        FileFinder.__init__(self, path, *filefinder2.get_supported_file_loaders())
 
     def __repr__(self):
         return 'ROSDirectoryFinder({!r})'.format(self.path)
@@ -188,7 +189,6 @@ class ROSDirectoryFinder(FileFinder):
         Try to find a spec for the specified module.
                 Returns the matching spec, or None if not found.
         :param fullname: the name of the package we are trying to import
-        :param target: what we plan to do with it
         :return:
         """
 
@@ -238,6 +238,11 @@ class ROSDirectoryFinder(FileFinder):
                 # We DO NOT WANT TO add the generated dir in sys.path to use a python loader
                 # since the plan is to eventually not have to rely on files at all TODO
 
+        # Since we are a filefinder, if we have no loader yet,
+        # we also need to attempt to load usual modules from self.path
+        if loader is None:
+            loader = FileFinder.find_module(self, fullname)
+
         # we return None if we couldn't build a loader before
         return loader
 
@@ -262,10 +267,8 @@ def _install():
     # TODO : sys.meta_path.append(DistroFinder)
 
 
-
-
 # Useless ?
-#_ros_finder_instance_obsolete_python = ROSImportFinder
+# _ros_finder_instance_obsolete_python = ROSImportFinder
 
 ros_distro_finder = None
 

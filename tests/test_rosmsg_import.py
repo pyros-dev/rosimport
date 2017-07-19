@@ -49,6 +49,7 @@ from rosimport import activate, deactivate
 
 from ._utils import (
     print_importers,
+    print_importers_of,
     BaseMsgTestCase,
     BaseSrvTestCase,
 )
@@ -75,6 +76,8 @@ class TestImportMsg(BaseMsgTestCase):
         # Verify that files exists and are importable
         import std_msgs.msg as std_msgs
 
+        print_importers_of(std_msgs)
+
         self.assert_std_message_classes(std_msgs.Bool, std_msgs.Header)
 
     def test_import_class_from_absolute_msg(self):
@@ -92,6 +95,8 @@ class TestImportMsg(BaseMsgTestCase):
 
         from . import msg as test_msgs
 
+        print_importers_of(test_msgs)
+
         self.assert_test_message_classes(test_msgs.TestMsg, test_msgs.TestMsgDeps, test_msgs.TestRosMsgDeps, test_msgs.TestRosMsg)
 
     def test_import_relative_msg_from_absolute(self):
@@ -99,6 +104,8 @@ class TestImportMsg(BaseMsgTestCase):
         print_importers()
 
         import tests.msg as test_msgs
+
+        print_importers_of(test_msgs)
 
         self.assert_test_message_classes(test_msgs.TestMsg, test_msgs.TestMsgDeps, test_msgs.TestRosMsgDeps, test_msgs.TestRosMsg)
 
@@ -151,6 +158,8 @@ class TestImportSrv(BaseSrvTestCase):
         # Verify that files exists and are importable
         import std_srvs.srv as std_srvs
 
+        print_importers_of(std_srvs)
+
         self.assert_std_service_classes(std_srvs.SetBool, std_srvs.SetBoolRequest, std_srvs.SetBoolResponse)
 
     def test_import_class_from_absolute_srv(self):
@@ -167,8 +176,13 @@ class TestImportSrv(BaseSrvTestCase):
         print_importers()
 
         from . import srv as test_srvs
+
+        print_importers_of(test_srvs)
+
         # importing this after to test implicit dependency import
         from . import msg as test_msgs
+
+        print_importers_of(test_msgs)
 
         self.assert_test_service_classes(test_srvs.TestSrv, test_srvs.TestSrvRequest, test_srvs.TestSrvResponse,
                                          test_srvs.TestSrvDeps, test_srvs.TestSrvDepsRequest, test_srvs.TestSrvDepsResponse,
@@ -179,7 +193,12 @@ class TestImportSrv(BaseSrvTestCase):
         print_importers()
 
         import tests.srv as test_srvs
+
+        print_importers_of(test_srvs)
+
         import tests.msg as test_msgs
+
+        print_importers_of(test_msgs)
 
         self.assert_test_service_classes(test_srvs.TestSrv, test_srvs.TestSrvRequest, test_srvs.TestSrvResponse,
                                          test_srvs.TestSrvDeps, test_srvs.TestSrvDepsRequest, test_srvs.TestSrvDepsResponse,
