@@ -26,54 +26,28 @@ import logging
 
 from ._utils import _ImportError, _verbose_message
 
+import filefinder2
+import filefinder2.machinery
+import filefinder2.util
 
 
-
-if (2, 7) <= sys.version_info < (3, 4):  # valid until which py3 version ?
-    import filefinder2
-    PathFinder = filefinder2.PathFinder2
-    FileFinder = filefinder2.FileFinder2
-elif sys.version_info >= (3, 4):  # we do not support 3.2 and 3.3 (unsupported but might work ?)
-    import importlib.machinery
-    PathFinder = importlib.machinery.PathFinder
-    FileFinder = importlib.machinery.FileFinder
-else:
-    raise ImportError("ros_loader : Unsupported python version")
-
-
-class ROSPathFinder(PathFinder):
+class ROSPathFinder(filefinder2.machinery.PathFinder):
     """
     MetaFinder to handle Finding ROS package directories
-    This is needed because python3 namespace package machinary can miss directories that are
+    This is needed because python3 namespace package machinery can miss directories that are
     ROS package root directories, containing msg and srv subdirs.
     """
 
-    def __init__(self, *modules):
-        """Initialisation of the finder depending on namespaces.
-        The issue here is that we do not have enough information at this stage
-        to determine which finder will be most appropriate for this path.
-
-        Only after find_module might we known which one should be chosen."""
-        self.module_names = modules
-
     @classmethod
-    def find_spec(cls, fullname, path, target=None):
-        loader = cls.find_module(fullname, path)
-        spec = importlib.util.spec_from_file_location(
-            # will extract all useful information from loader
-            fullname,
-            loader=loader,
-        )
-        return spec
-
-    @classmethod
-    def find_module(cls, fullname, path=None):  # from importlib.PathFinder
+    def find_spec(cls, fullname, path, target=None):  # from importlib.PathFinder
         """Try to find the module on sys.path or 'path'
         The search is based on sys.path_hooks and sys.path_importer_cache.
         """
+
         if path is None:
             path = sys.path
         loader = None
+        # TODO: review hte logic here... it was done for a find_module() API for py2 but could be improved...
         for entry in path:
             if not isinstance(entry, (str, bytes)):
                 continue
@@ -107,11 +81,14 @@ class ROSPathFinder(PathFinder):
                             loader = l
             # else:
             # other cases handled later by the default python pathfinder.
+        if loader is None:
+            return None
+        spec = filefinder2.util.spec_from_loader(fullname, loader)
 
-        return loader
+        return spec
 
 
-class ROSDirectoryFinder(FileFinder):
+class ROSDirectoryFinder(filefinder2.machinery.FileFinder):
     """Finder to interpret directories as modules, and files as classes"""
 
     def __init__(self, path, *ros_loader_details):
@@ -139,7 +116,7 @@ class ROSDirectoryFinder(FileFinder):
         # or raise ImportError to allow other finders to be instantiated for this path.
         # => the logic must correspond to find_module()
         findable = False
-        for f in [p for p in os.listdir(path) if os.path.isdir(os.path.join(path,p))]:  # we are only interested in directories
+        for f in [p for p in os.listdir(path) if os.path.isdir(os.path.join(path, p))]:  # we are only interested in directories
             findable = findable or any(  # we make sure we have at least a directory that :
                     f == l.get_origin_subdir() and  # has the right name and
                     [subf for subf in os.listdir(os.path.join(path, f)) if subf.endswith(s)]
@@ -157,8 +134,11 @@ class ROSDirectoryFinder(FileFinder):
             )
             # This is needed to not override default behavior in path where there is NO ROS files/directories.
 
-        # Since we can have a msg folder "inside" a python package hierarchy, we need to also "be" a Filefinder
-        FileFinder.__init__(self, path, *filefinder2.get_supported_file_loaders())
+        # Since we can have only one finder per directory, we are also a filefinder for usual python,
+        # so we should initialize properly.
+        # CAREFUL : this is only visible while trying to import a subpackage existing along a msg/
+        # from a different package... => tricky to test for it...
+        super(ROSDirectoryFinder, self).__init__(path, *filefinder2.get_supported_file_loaders())
 
     def __repr__(self):
         return 'ROSDirectoryFinder({!r})'.format(self.path)
@@ -174,17 +154,6 @@ class ROSDirectoryFinder(FileFinder):
         return rosimporter_path_hook
 
     def find_spec(self, fullname, target=None):
-        import importlib.util  # called only in python 3, which should have this
-
-        loader = self.find_module(fullname)
-        spec = importlib.util.spec_from_file_location(
-            # will extract all useful information from loader
-            fullname,
-            loader=loader,
-        )
-        return spec
-
-    def find_module(self, fullname, path=None):
         """
         Try to find a spec for the specified module.
                 Returns the matching spec, or None if not found.
@@ -193,7 +162,7 @@ class ROSDirectoryFinder(FileFinder):
         """
 
         tail_module = fullname.rpartition('.')[2]
-        loader = None
+        spec = None
         base_path = os.path.join(self.path, tail_module)
 
         # special code here since FileFinder expect a "__init__" that we don't need for msg or srv.
@@ -237,14 +206,15 @@ class ROSDirectoryFinder(FileFinder):
                 loader = loader_class(fullname, base_path)
                 # We DO NOT WANT TO add the generated dir in sys.path to use a python loader
                 # since the plan is to eventually not have to rely on files at all TODO
+                spec = filefinder2.util.spec_from_loader(fullname, loader)
 
         # Since we are a filefinder, if we have no loader yet,
         # we also need to attempt to load usual modules from self.path
-        if loader is None:
-            loader = FileFinder.find_module(self, fullname)
+        if spec is None:
+            spec = super(ROSDirectoryFinder, self).find_spec(fullname)
 
-        # we return None if we couldn't build a loader before
-        return loader
+        # we return None if we couldn't get a spec before
+        return spec
 
 
 MSG_SUFFIXES = ['.msg']
@@ -288,14 +258,14 @@ def activate(rosdistro_path=None, *workspaces):
             raise ImportError(
                 "No ROS distro detected on this system. Please specify the path when calling ROSImportMetaFinder()")
 
-    ros_distro_finder = ROSImportMetaFinder(rosdistro_path, *workspaces)
+    ros_distro_finder = ROSPathFinder(rosdistro_path, *workspaces)
     sys.meta_path.append(ros_distro_finder)
 
     #if sys.version_info >= (2, 7, 12):  # TODO : which exact version matters ?
 
     # We need to be before FileFinder to be able to find our (non .py[c]) files
     # inside, maybe already imported, python packages...
-    sys.path_hooks.insert(1, ROSImportFinder)
+    sys.path_hooks.insert(1, ROSDirectoryFinder)
 
     # else:  # older (trusty) version
     #     sys.path_hooks.append(_ros_finder_instance_obsolete_python)

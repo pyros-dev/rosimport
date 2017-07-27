@@ -40,7 +40,7 @@ import importlib
 import site
 
 # Importing importer module
-from rosimport import activate, deactivate
+import rosimport
 
 # importlib
 # https://pymotw.com/3/importlib/index.html
@@ -64,11 +64,11 @@ class TestImportMsg(BaseMsgTestCase):
     def setUpClass(cls):
         # This is used for message definitions, not for python code
         site.addsitedir(cls.rosdeps_path)
-        activate()
+        rosimport.activate()
 
     @classmethod
     def tearDownClass(cls):
-        deactivate()
+        rosimport.deactivate()
 
     def test_import_absolute_msg(self):
         print_importers()
@@ -146,11 +146,11 @@ class TestImportSrv(BaseSrvTestCase):
         # This is used for message definitions, not for python code
         site.addsitedir(cls.rosdeps_path)
         site.addsitedir(cls.ros_comm_msgs_path)
-        activate()
+        rosimport.activate()
 
     @classmethod
     def tearDownClass(cls):
-        deactivate()
+        rosimport.deactivate()
 
     def test_import_absolute_srv(self):
         print_importers()
