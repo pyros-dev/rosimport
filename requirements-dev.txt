@@ -7,4 +7,4 @@ pytest-xdist  # for --boxed (careful with the version it will be moved out of xd
 
 
 # source access to latest filefinder from git ...
--e git+https://github.com/asmodehn/filefinder2.git@import_23_api#egg=filefinder2
+-e git+https://github.com/asmodehn/filefinder2.git#egg=filefinder2
