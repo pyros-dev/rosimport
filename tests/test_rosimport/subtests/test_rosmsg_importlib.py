@@ -87,7 +87,7 @@ class TestImportLibMsg(BaseMsgSubTestCase):
     def test_importlib_import_relative_msg(self):
         # Verify that files exists and are importable
         subtest_msgs = importlib.__import__('msg', globals=globals(), level=1)
-        test_msgs = importlib.__import__('tests.msg')
+        test_msgs = importlib.__import__('test_rosimport.msg')
         test_msgs = test_msgs.msg
 
         self.assert_test_message_classes(subtest_msgs.SubTestMsg, subtest_msgs.SubTestMsgDeps, test_msgs.TestRosMsgDeps, test_msgs.TestRosMsg)
@@ -223,7 +223,7 @@ class TestImportLibMsg(BaseMsgSubTestCase):
         assert __package__
         # Verify that files exists and are dynamically importable
         subtest_msgs = importlib.import_module('.msg', package=__package__)
-        test_msgs = importlib.import_module('tests.msg', package=__package__)
+        test_msgs = importlib.import_module('test_rosimport.msg', package=__package__)
 
         self.assert_test_message_classes(subtest_msgs.SubTestMsg, subtest_msgs.SubTestMsgDeps, test_msgs.TestRosMsgDeps, test_msgs.TestRosMsg)
 
@@ -240,8 +240,8 @@ class TestImportLibMsg(BaseMsgSubTestCase):
 
         assert __package__
         # Verify that files exists and are dynamically importable
-        subtest_msgs = importlib.import_module('tests.subtests.msg')
-        test_msgs = importlib.import_module('tests.msg')
+        subtest_msgs = importlib.import_module('test_rosimport.subtests.msg')
+        test_msgs = importlib.import_module('test_rosimport.msg')
 
         self.assert_test_message_classes(subtest_msgs.SubTestMsg, subtest_msgs.SubTestMsgDeps, test_msgs.TestRosMsgDeps, test_msgs.TestRosMsg)
 
@@ -296,10 +296,16 @@ class TestImportLibSrv(BaseSrvSubTestCase):
     @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
     def test_importlib_import_absolute_srv(self):
         # Verify that files exists and are importable
-        std_srvs = importlib.__import__('std_srvs.srv')
-        std_srvs = std_srvs.srv
+        # __import__ checks sys.modules by itself
+        # but the test is not reflecting anything if we use the already loaded module.
+        if sys.modules.get('std_srvs.srv'):
+            #TODO : EVERYWHERE !
+            raise unittest.SkipTest("module previously loaded".format('std_srvs.srv'))
+        else:
+            std_srvs = importlib.__import__('std_srvs.srv')
+            std_srvs = std_srvs.srv
 
-        self.assert_std_service_classes(std_srvs.SetBool, std_srvs.SetBoolRequest, std_srvs.SetBoolResponse)
+            self.assert_std_service_classes(std_srvs.SetBool, std_srvs.SetBoolRequest, std_srvs.SetBoolResponse)
 
     @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
     def test_importlib_import_absolute_class_raises(self):
@@ -311,7 +317,7 @@ class TestImportLibSrv(BaseSrvSubTestCase):
     def test_importlib_import_relative_srv(self):
         # Verify that files exists and are importable
         subtest_srvs = importlib.__import__('srv', globals=globals(), level=1)
-        test_msgs = importlib.__import__('tests.msg')
+        test_msgs = importlib.__import__('test_rosimport.msg')
         test_msgs = test_msgs.msg
 
         self.assert_test_service_classes(subtest_srvs.SubTestSrv, subtest_srvs.SubTestSrvRequest, subtest_srvs.SubTestSrvResponse,
@@ -442,7 +448,7 @@ class TestImportLibSrv(BaseSrvSubTestCase):
         assert __package__
         # Verify that files exists and are dynamically importable
         subtest_srvs = importlib.import_module('.srv', package=__package__)
-        test_msgs = importlib.import_module('tests.msg', package=__package__)
+        test_msgs = importlib.import_module('test_rosimport.msg', package=__package__)
 
         self.assert_test_service_classes(subtest_srvs.SubTestSrv, subtest_srvs.SubTestSrvRequest, subtest_srvs.SubTestSrvResponse,
                                          subtest_srvs.SubTestSrvDeps, subtest_srvs.SubTestSrvDepsRequest, subtest_srvs.SubTestSrvDepsResponse,
@@ -461,8 +467,8 @@ class TestImportLibSrv(BaseSrvSubTestCase):
 
         assert __package__
         # Verify that files exists and are dynamically importable
-        subtest_srvs = importlib.import_module('tests.subtests.srv')
-        test_msgs = importlib.import_module('tests.msg')
+        subtest_srvs = importlib.import_module('test_rosimport.subtests.srv')
+        test_msgs = importlib.import_module('test_rosimport.msg')
 
         self.assert_test_service_classes(subtest_srvs.SubTestSrv, subtest_srvs.SubTestSrvRequest, subtest_srvs.SubTestSrvResponse,
                                          subtest_srvs.SubTestSrvDeps, subtest_srvs.SubTestSrvDepsRequest, subtest_srvs.SubTestSrvDepsResponse,

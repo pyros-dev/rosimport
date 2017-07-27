@@ -1,7 +1,9 @@
 from __future__ import absolute_import, print_function
 
-import os
 import unittest
+
+import sys
+
 
 def print_importers():
     import sys
@@ -10,45 +12,41 @@ def print_importers():
     print('PATH:'),
     pprint.pprint(sys.path)
     print()
-    print('IMPORTERS CACHE: {')
+    print('IMPORTERS:')
     for name, cache_value in sys.path_importer_cache.items():
         name = name.replace(sys.prefix, '...')
         print('%s: %r' % (name, cache_value))
-    print('}')
 
 
-def print_importers_of(module):
-    import sys
-    import pprint
-
-    print('MODULE:'),
-    pprint.pprint(module)
-    mod_path = module.__file__.split(os.sep)
-    print()
-    print('IMPORTERS USED: {')
-    for i in range(len(mod_path)-1):
-        parpath = os.sep.join(mod_path[:len(mod_path) - i])
-        if parpath in sys.path_importer_cache:
-            cached_imp = sys.path_importer_cache[parpath]
-            parpath = parpath.replace(sys.prefix, '...')
-            print('%s: %r' % (parpath, cached_imp))
-    print('}')
+def load_from_path(module_name, filepath):
+    if sys.version_info >= (3, 5):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(module_name, filepath)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+    elif sys.version_info > (3, 2):
+        from importlib.machinery import SourceFileLoader
+        mod = SourceFileLoader(module_name, filepath).load_module()
+    else:  # python 2.7
+        import imp
+        mod = imp.load_source(module_name, filepath)
+    return mod
 
 
-class BaseMsgTestCase(unittest.TestCase):
+class BaseMsgSubTestCase(unittest.TestCase):
 
     def assert_test_message_classes(self, TestMsg, TestMsgDeps, TestRosMsgDeps, TestRosMsg):
         self.assertTrue(TestMsg is not None)
         self.assertTrue(callable(TestMsg))
-        self.assertTrue(TestMsg._type == 'tests/TestMsg')  # careful between ros package name and python package name
+        self.assertTrue(TestMsg._type == 'test_rosimport/SubTestMsg')  # careful between ros package name and python package name
 
         self.assertTrue(TestMsgDeps is not None)
         self.assertTrue(callable(TestMsgDeps))
         self.assertTrue(
-            TestMsgDeps._type == 'tests/TestMsgDeps')  # careful between ros package name and python package name
+            TestMsgDeps._type == 'test_rosimport/SubTestMsgDeps')  # careful between ros package name and python package name
 
         # use it !
-        self.assertTrue(TestMsg(test_bool=True, test_string='Test').test_bool)
+        self.assertTrue(TestMsg(test_bool=True, test_string='SubTest').test_bool)
 
         self.assertTrue(TestMsgDeps(
             test_bool=True,
@@ -75,7 +73,7 @@ class BaseMsgTestCase(unittest.TestCase):
         self.assertTrue(Header(seq=42, stamp=genpy.Time(secs=21, nsecs=7), frame_id=0))
 
 
-class BaseSrvTestCase(unittest.TestCase):
+class BaseSrvSubTestCase(unittest.TestCase):
     def assert_test_service_classes(self,
                                     TestSrv, TestSrvRequest, TestSrvResponse,
                                     TestSrvDeps, TestSrvDepsRequest, TestSrvDepsResponse,
@@ -83,36 +81,36 @@ class BaseSrvTestCase(unittest.TestCase):
         self.assertTrue(TestSrv is not None)
         self.assertTrue(callable(TestSrv))
         self.assertTrue(
-            TestSrv._type == 'tests/TestSrv')  # careful between ros package name and python package name
+            TestSrv._type == 'test_rosimport/SubTestSrv')  # careful between ros package name and python package name
 
         self.assertTrue(TestSrvRequest is not None)
         self.assertTrue(callable(TestSrvRequest))
         self.assertTrue(
-            TestSrvRequest._type == 'tests/TestSrvRequest')  # careful between ros package name and python package name
+            TestSrvRequest._type == 'test_rosimport/SubTestSrvRequest')  # careful between ros package name and python package name
 
         self.assertTrue(TestSrvResponse is not None)
         self.assertTrue(callable(TestSrvResponse))
         self.assertTrue(
-            TestSrvResponse._type == 'tests/TestSrvResponse')  # careful between ros package name and python package name
+            TestSrvResponse._type == 'test_rosimport/SubTestSrvResponse')  # careful between ros package name and python package name
 
         # use it !
-        self.assertTrue(TestSrvRequest(test_request='Test').test_request)
+        self.assertTrue(TestSrvRequest(test_request='subTest').test_request)
         self.assertTrue(TestSrvResponse(test_response=True).test_response)
 
         self.assertTrue(TestSrvDeps is not None)
         self.assertTrue(callable(TestSrvDeps))
         self.assertTrue(
-            TestSrvDeps._type == 'tests/TestSrvDeps')  # careful between ros package name and python package name
+            TestSrvDeps._type == 'test_rosimport/SubTestSrvDeps')  # careful between ros package name and python package name
 
         self.assertTrue(TestSrvDepsRequest is not None)
         self.assertTrue(callable(TestSrvDepsRequest))
         self.assertTrue(
-            TestSrvDepsRequest._type == 'tests/TestSrvDepsRequest')  # careful between ros package name and python package name
+            TestSrvDepsRequest._type == 'test_rosimport/SubTestSrvDepsRequest')  # careful between ros package name and python package name
 
         self.assertTrue(TestSrvDepsResponse is not None)
         self.assertTrue(callable(TestSrvDepsResponse))
         self.assertTrue(
-            TestSrvDepsResponse._type == 'tests/TestSrvDepsResponse')  # careful between ros package name and python package name
+            TestSrvDepsResponse._type == 'test_rosimport/SubTestSrvDepsResponse')  # careful between ros package name and python package name
 
         # use it !
         self.assertTrue(TestSrvDepsRequest(

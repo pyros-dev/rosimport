@@ -111,7 +111,7 @@ class TestImportLibMsg(BaseMsgTestCase):
 
         assert __package__
         # Verify that files exists and are dynamically importable
-        test_msgs = importlib.import_module('tests.msg')
+        test_msgs = importlib.import_module('test_rosimport.msg')
 
         self.assert_test_message_classes(test_msgs.TestMsg, test_msgs.TestMsgDeps, test_msgs.TestRosMsgDeps, test_msgs.TestRosMsg)
 
@@ -209,8 +209,8 @@ class TestImportLibSrv(BaseSrvTestCase):
 
         assert __package__
         # Verify that files exists and are dynamically importable
-        test_srvs = importlib.import_module('tests.srv')
-        test_msgs = importlib.import_module('tests.msg')
+        test_srvs = importlib.import_module('test_rosimport.srv')
+        test_msgs = importlib.import_module('test_rosimport.msg')
 
         self.assert_test_service_classes(test_srvs.TestSrv, test_srvs.TestSrvRequest, test_srvs.TestSrvResponse,
                                          test_srvs.TestSrvDeps, test_srvs.TestSrvDepsRequest, test_srvs.TestSrvDepsResponse,

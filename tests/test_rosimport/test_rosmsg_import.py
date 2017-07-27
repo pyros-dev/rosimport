@@ -103,7 +103,7 @@ class TestImportMsg(BaseMsgTestCase):
         """Verify that package is importable relatively"""
         print_importers()
 
-        import tests.msg as test_msgs
+        import test_rosimport.msg as test_msgs
 
         print_importers_of(test_msgs)
 
@@ -192,11 +192,11 @@ class TestImportSrv(BaseSrvTestCase):
         """Verify that package is importable relatively"""
         print_importers()
 
-        import tests.srv as test_srvs
+        import test_rosimport.srv as test_srvs
 
         print_importers_of(test_srvs)
 
-        import tests.msg as test_msgs
+        import test_rosimport.msg as test_msgs
 
         print_importers_of(test_msgs)
 

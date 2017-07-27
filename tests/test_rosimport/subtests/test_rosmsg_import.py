@@ -91,7 +91,7 @@ class SubTestImportMsg(BaseMsgSubTestCase):
 
         from . import msg as subtest_msgs
         # importing root pkg afterwards to make sure our generation supports this usecase...
-        import tests.msg as tests_msgs
+        import test_rosimport.msg as tests_msgs
 
         self.assert_test_message_classes(subtest_msgs.SubTestMsg, subtest_msgs.SubTestMsgDeps, tests_msgs.TestRosMsgDeps, tests_msgs.TestRosMsg)
 
@@ -99,9 +99,9 @@ class SubTestImportMsg(BaseMsgSubTestCase):
         """Verify that package is importable relatively"""
         print_importers()
 
-        import tests.subtests.msg as subtest_msgs
+        import test_rosimport.subtests.msg as subtest_msgs
         # importing root pkg afterwards to make sure our generation supports this usecase...
-        import tests.msg as tests_msgs
+        import test_rosimport.msg as tests_msgs
 
         self.assert_test_message_classes(subtest_msgs.SubTestMsg, subtest_msgs.SubTestMsgDeps, tests_msgs.TestRosMsgDeps, tests_msgs.TestRosMsg)
 
@@ -111,7 +111,7 @@ class SubTestImportMsg(BaseMsgSubTestCase):
 
         from .msg import SubTestMsg, SubTestMsgDeps
         # importing root pkg afterwards to make sure our generation supports this usecase...
-        from tests.msg import TestRosMsgDeps, TestRosMsg
+        from test_rosimport.msg import TestRosMsgDeps, TestRosMsg
 
         self.assert_test_message_classes(SubTestMsg, SubTestMsgDeps, TestRosMsgDeps, TestRosMsg)
 
@@ -173,7 +173,7 @@ class SubTestImportSrv(BaseSrvSubTestCase):
 
         from . import srv as test_srvs
         # importing this after to test implicit dependency import
-        import tests.msg as test_msgs
+        import test_rosimport.msg as test_msgs
 
         self.assert_test_service_classes(test_srvs.SubTestSrv, test_srvs.SubTestSrvRequest, test_srvs.SubTestSrvResponse,
                                          test_srvs.SubTestSrvDeps, test_srvs.SubTestSrvDepsRequest, test_srvs.SubTestSrvDepsResponse,
@@ -183,8 +183,8 @@ class SubTestImportSrv(BaseSrvSubTestCase):
         """Verify that package is importable relatively"""
         print_importers()
 
-        import tests.subtests.srv as test_srvs
-        import tests.msg as test_msgs
+        import test_rosimport.subtests.srv as test_srvs
+        import test_rosimport.msg as test_msgs
 
         self.assert_test_service_classes(test_srvs.SubTestSrv, test_srvs.SubTestSrvRequest, test_srvs.SubTestSrvResponse,
                                          test_srvs.SubTestSrvDeps, test_srvs.SubTestSrvDepsRequest, test_srvs.SubTestSrvDepsResponse,
@@ -196,7 +196,7 @@ class SubTestImportSrv(BaseSrvSubTestCase):
 
         from .srv import SubTestSrv, SubTestSrvRequest, SubTestSrvResponse, SubTestSrvDeps, SubTestSrvDepsRequest, SubTestSrvDepsResponse
         # importing message dependencies after services to verify they are transitively already imported when needed.
-        from tests.msg import TestRosMsgDeps, TestRosMsg
+        from test_rosimport.msg import TestRosMsgDeps, TestRosMsg
 
         self.assert_test_service_classes(SubTestSrv, SubTestSrvRequest, SubTestSrvResponse,
                                          SubTestSrvDeps, SubTestSrvDepsRequest, SubTestSrvDepsResponse,
