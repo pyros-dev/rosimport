@@ -105,16 +105,9 @@ def RosLoader(rosdef_extension):
     else:
         raise RuntimeError("RosLoader for a format {0} other than .msg or .srv is not supported".format(rosdef_extension))
 
-    if (2, 7) <= sys.version_info < (3, 4):  # valid until which py3 version ?
-        import filefinder2
-        FileLoader = filefinder2.SourceFileLoader2
-    elif sys.version_info >= (3, 4):  # we do not support 3.2 and 3.3 (unsupported but might work ?)
-        import importlib.machinery
-        FileLoader = importlib.machinery.SourceFileLoader
-    else:
-        raise ImportError("ros_loader : Unsupported python version")
+    import filefinder2.machinery
 
-    class ROSDefLoader(FileLoader):
+    class ROSDefLoader(filefinder2.machinery.SourceFileLoader):
         """
         Python Loader for Rosdef files.
         Note : We support ROS layout :
@@ -195,6 +188,18 @@ def RosLoader(rosdef_extension):
 
                     # relying on usual source file loader since we have generated normal python code
                     super(ROSDefLoader, self).__init__(fullname, gen_rosdef_pkgpath)
+
+        def create_module(self, spec):
+            """Specify module creation."""
+            return super(ROSDefLoader, self).create_module(spec)
+
+        def exec_module(self, module):
+            """Execute the module."""
+            return super(ROSDefLoader, self).exec_module(module)
+
+        def load_module(self, fullname):
+            return super(ROSDefLoader, self).load_module(fullname)
+
 
         def get_gen_path(self):
             """Returning the generated path matching the import"""
