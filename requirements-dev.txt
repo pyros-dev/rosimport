@@ -7,8 +7,9 @@ pytest-xdist  # for --boxed (careful with the version it will be moved out of xd
 
 
 # source access to latest filefinder from git ...
--e git+https://github.com/asmodehn/filefinder2.git#egg=filefinder2
+# 0.4.1 has been released !
+# -e git+https://github.com/asmodehn/filefinder2.git#egg=filefinder2
 
 # ros dependencies (necessary when running tests from install)
 -e git+https://github.com/asmodehn/genmsg.git@setuptools#egg=ros_genmsg
--e git+https://github.com/asmodehn/genpy.git@setuptools#egg=ros_genpy
+-e git+https://github.com/asmodehn/genpy.git@setuptools-kinetic#egg=ros_genpy
