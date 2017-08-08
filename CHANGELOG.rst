@@ -2,8 +2,30 @@ Changelog
 =========
 
 
+0.2.1 (2017-08-08)
+------------------
+- Now depending on latest filefinder2 release. [alexv]
+- Letting filefinder2 manage create_module API being available or not.
+  [alexv]
+- Removing python version restriction on filefinder since it now manages
+  API compat. [alexv]
+- Moving submodules used by tests. [alexv]
+- Removign submodules that we can get with pip. restructured tests.
+  [alexv]
+- Fixing filefinder version. [alexv]
+- Merge pull request #11 from asmodehn/import_23_api. [AlexV]
+
+  Import 23 api
+- Fixing tests after filefinder2 api change. [alexv]
+- Small changes to attempt dealing with filefinder providing an importer
+  API... [alexv]
+- Now using ROS_PACKAGE_PATH as initial search path if setup in
+  environment. [alexv]
+
+
 0.1.1 (2017-07-17)
 ------------------
+- V0.1.1. [alexv]
 - Fixing tests after activate/deactivate api change. [alexv]
 - Refining requirement after filefinder2 release v0.3. [alexv]
 - Preventing multiple activation to pollute sys.path_hooks and
