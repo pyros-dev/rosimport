@@ -1,0 +1,2 @@
+# test relative dependencies
+TestRosMsgPatch test_ros_msg_patch
