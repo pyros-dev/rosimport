@@ -1,1 +1,26 @@
-{}
+{
+  "tests/test_rosimport/subtests/test_rosmsg_import.py::SubTestImportMsg::test_import_class_from_relative_msg": true,
+  "tests/test_rosimport/subtests/test_rosmsg_import.py::SubTestImportMsg::test_import_relative_msg": true,
+  "tests/test_rosimport/subtests/test_rosmsg_import.py::SubTestImportMsg::test_import_relative_msg_from_absolute": true,
+  "tests/test_rosimport/subtests/test_rosmsg_import.py::SubTestImportSrv::test_import_class_from_relative_srv": true,
+  "tests/test_rosimport/subtests/test_rosmsg_import.py::SubTestImportSrv::test_import_relative_srv": true,
+  "tests/test_rosimport/subtests/test_rosmsg_import.py::SubTestImportSrv::test_import_relative_srv_from_absolute": true,
+  "tests/test_rosimport/subtests/test_rosmsg_importlib.py::TestImportLibMsg::test_importlib_import_relative_msg": true,
+  "tests/test_rosimport/subtests/test_rosmsg_importlib.py::TestImportLibMsg::test_importlib_importmodule_relative_msg": true,
+  "tests/test_rosimport/subtests/test_rosmsg_importlib.py::TestImportLibMsg::test_importlib_importmodule_relative_msg_from_absolute": true,
+  "tests/test_rosimport/subtests/test_rosmsg_importlib.py::TestImportLibSrv::test_importlib_import_relative_srv": true,
+  "tests/test_rosimport/subtests/test_rosmsg_importlib.py::TestImportLibSrv::test_importlib_importmodule_relative_srv": true,
+  "tests/test_rosimport/subtests/test_rosmsg_importlib.py::TestImportLibSrv::test_importlib_importmodule_relative_srv_from_absolute": true,
+  "tests/test_rosimport/test_rosmsg_import.py::TestImportMsg::test_import_class_from_relative_msg": true,
+  "tests/test_rosimport/test_rosmsg_import.py::TestImportMsg::test_import_relative_msg": true,
+  "tests/test_rosimport/test_rosmsg_import.py::TestImportMsg::test_import_relative_msg_from_absolute": true,
+  "tests/test_rosimport/test_rosmsg_import.py::TestImportSrv::test_import_class_from_relative_srv": true,
+  "tests/test_rosimport/test_rosmsg_import.py::TestImportSrv::test_import_relative_srv": true,
+  "tests/test_rosimport/test_rosmsg_import.py::TestImportSrv::test_import_relative_srv_from_absolute": true,
+  "tests/test_rosimport/test_rosmsg_importlib_import.py::TestImportLibMsg::test_importlib_import_relative_msg": true,
+  "tests/test_rosimport/test_rosmsg_importlib_import.py::TestImportLibSrv::test_importlib_import_relative_srv": true,
+  "tests/test_rosimport/test_rosmsg_importlib_importmodule.py::TestImportLibMsg::test_importlib_importmodule_relative_msg": true,
+  "tests/test_rosimport/test_rosmsg_importlib_importmodule.py::TestImportLibMsg::test_importlib_importmodule_relative_msg_from_absolute": true,
+  "tests/test_rosimport/test_rosmsg_importlib_importmodule.py::TestImportLibSrv::test_importlib_importmodule_relative_srv": true,
+  "tests/test_rosimport/test_rosmsg_importlib_importmodule.py::TestImportLibSrv::test_importlib_importmodule_relative_srv_from_absolute": true
+}
