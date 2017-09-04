@@ -13,20 +13,20 @@ ROS message definitions python importer
     * - Python
       - |version| |downloads| |wheel| |supported-versions| |supported-implementations|
 
-.. |travis| image:: https://travis-ci.org/asmodehn/rosimport.svg?branch=master
+.. |travis| image:: https://travis-ci.org/pyros-dev/rosimport.svg?branch=master
     :alt: Travis-CI Build Status
-    :target: https://travis-ci.org/asmodehn/rosimport
+    :target: https://travis-ci.org/pyros-dev/rosimport
 
 .. |quantifiedcode| image:: https://www.quantifiedcode.com/api/v1/project/4d473ef2517041c4adc1214c88e4abae/badge.svg
     :target: https://www.quantifiedcode.com/app/project/4d473ef2517041c4adc1214c88e4abae
     :alt: Code issues
 
-.. |requires| image:: https://requires.io/github/asmodehn/rosimport/requirements.svg?branch=master
+.. |requires| image:: https://requires.io/github/pyros-dev/rosimport/requirements.svg?branch=master
     :alt: Requirements Status
-    :target: hhttps://requires.io/github/asmodehn/rosimport/requirements/?branch=master
+    :target: hhttps://requires.io/github/pyros-dev/rosimport/requirements/?branch=master
 
-.. |landscape| image:: https://landscape.io/github/asmodehn/rosimport/master/landscape.svg?style=flat
-    :target: hhttps://landscape.io/github/asmodehn/rosimport/master
+.. |landscape| image:: https://landscape.io/github/pyros-dev/rosimport/master/landscape.svg?style=flat
+    :target: hhttps://landscape.io/github/pyros-dev/rosimport/master
     :alt: Code Quality Status
 
 .. |version| image:: https://img.shields.io/pypi/v/rosimport.svg?style=flat
