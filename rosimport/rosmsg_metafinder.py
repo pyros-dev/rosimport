@@ -132,7 +132,7 @@ if sys.version_info >= (3, 4):
             return None
 
 else:
-    passb # TODO
+    pass  # TODO
 
 
 # Useless ?
