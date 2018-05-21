@@ -16,9 +16,6 @@ import site
 
 from rosimport import genrosmsg_py, genrossrv_py, activate, deactivate
 
-if (2, 7) <= sys.version_info < (3, 4):
-    import filefinder2
-    filefinder2.activate()
 
 """
 Test module for generator ONLY.
