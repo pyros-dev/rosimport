@@ -14,7 +14,7 @@ import pkg_resources
 import importlib
 import site
 
-from rosimport import genrosmsg_py, genrossrv_py, activate, deactivate
+from rosimport import genrosmsg_py, genrossrv_py
 
 
 """

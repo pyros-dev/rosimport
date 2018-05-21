@@ -58,15 +58,17 @@ from ._utils import (
 class TestImportLibMsg(BaseMsgTestCase):
     rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'rosdeps')
 
+    rosimporter = rosimport.RosImporter()
+
     @classmethod
     def setUpClass(cls):
         # This is used for message definitions, not for python code
         site.addsitedir(cls.rosdeps_path)
-        rosimport.activate()
+        cls.rosimporter.__enter__()
 
     @classmethod
     def tearDownClass(cls):
-        rosimport.deactivate()
+        cls.rosimporter.__exit__(None, None, None)
 
     @unittest.skipIf(not hasattr(importlib, 'import_module'), reason="importlib does not have attribute import_module")
     def test_importlib_importmodule_absolute_msg(self):
@@ -152,16 +154,18 @@ class TestImportLibSrv(BaseSrvTestCase):
     # For dependencies
     rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'rosdeps')
 
+    rosimporter = rosimport.RosImporter()
+
     @classmethod
     def setUpClass(cls):
         # This is used for message definitions, not for python code
         site.addsitedir(cls.rosdeps_path)
         site.addsitedir(cls.ros_comm_msgs_path)
-        rosimport.activate()
+        cls.rosimporter.__enter__()
 
     @classmethod
     def tearDownClass(cls):
-        rosimport.deactivate()
+        cls.rosimporter.__exit__(None, None, None)
 
     @unittest.skipIf(not hasattr(importlib, 'import_module'), reason="importlib does not have attribute import_module")
     def test_importlib_importmodule_absolute_srv(self):
