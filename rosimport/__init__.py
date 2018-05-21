@@ -48,11 +48,11 @@ def deactivate():
     # initialized finders will remain in sys.path_importer_cache
 
     # removing metahook
-    ff2_idx = sys.path_hooks.index(ros_path_hook)
-    sys.meta_path.pop(ff2_idx)
-    # removing path_hook
     pf2_idx = sys.meta_path.index(ROSPathFinder)
-    sys.path_hooks.pop(pf2_idx)
+    sys.meta_path.pop(pf2_idx)
+    # removing path_hook
+    ff2_idx = sys.path_hooks.index(ros_path_hook)
+    sys.path_hooks.pop(ff2_idx)
 
     py3importer.__exit__(None, None, None)
 
