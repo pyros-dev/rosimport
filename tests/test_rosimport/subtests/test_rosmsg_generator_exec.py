@@ -17,7 +17,7 @@ import site
 
 from ._utils import load_from_path
 
-from rosimport import genrosmsg_py, genrossrv_py, activate, deactivate
+from rosimport import genrosmsg_py, genrossrv_py
 
 
 class TestGenerateBasic(unittest.TestCase):

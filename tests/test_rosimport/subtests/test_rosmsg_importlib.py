@@ -36,7 +36,7 @@ import importlib
 import site
 
 # Importing importer module
-from rosimport import activate, deactivate
+from rosimport import RosImporter
 
 # importlib
 # https://pymotw.com/3/importlib/index.html
@@ -58,16 +58,18 @@ from ._utils import (
 class TestImportLibMsg(BaseMsgSubTestCase):
     rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps')
 
+    # importer instance
+    rosimporter = RosImporter()
 
     @classmethod
     def setUpClass(cls):
         # This is used for message definitions, not for python code
         site.addsitedir(cls.rosdeps_path)
-        activate()
+        cls.rosimporter.__enter__()
 
     @classmethod
     def tearDownClass(cls):
-        deactivate()
+        cls.rosimporter.__exit__(None, None, None)
 
     @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
     def test_importlib_import_absolute_msg(self):
@@ -282,16 +284,18 @@ class TestImportLibSrv(BaseSrvSubTestCase):
     # For dependencies
     rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'rosdeps')
 
+    rosimporter = RosImporter()
+
     @classmethod
     def setUpClass(cls):
         # This is used for message definitions, not for python code
         site.addsitedir(cls.rosdeps_path)
         site.addsitedir(cls.ros_comm_msgs_path)
-        activate()
+        cls.rosimporter.__enter__()
 
     @classmethod
     def tearDownClass(cls):
-        deactivate()
+        cls.rosimporter.__exit__(None, None, None)
 
     @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
     def test_importlib_import_absolute_srv(self):

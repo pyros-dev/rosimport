@@ -7,7 +7,6 @@ pytest-xdist  # for --boxed (careful with the version it will be moved out of xd
 
 
 # source access to latest filefinder from git ...
-# 0.4.1 has been released !
 # -e git+https://github.com/asmodehn/filefinder2.git#egg=filefinder2
 
 # ros dependencies (necessary when running tests from install)

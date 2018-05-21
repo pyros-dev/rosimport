@@ -14,11 +14,8 @@ import pkg_resources
 import importlib
 import site
 
-from rosimport import genrosmsg_py, genrossrv_py, activate, deactivate
+from rosimport import genrosmsg_py, genrossrv_py
 
-if (2, 7) <= sys.version_info < (3, 4):
-    import filefinder2
-    filefinder2.activate()
 
 """
 Test module for generator ONLY.
