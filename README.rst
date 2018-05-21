@@ -58,10 +58,11 @@ Usage:
 
     import sys
     import rosimport
-    rosimport.activate()
 
-    import my_msgs.msg  # directly from a my_msgs/msg directory containing My.msg ros definition
-    # Or relatively :
-    from . import msg
+    with rosimport.RosImporter():
 
+        import my_msgs.msg  # directly from a my_msgs/msg directory containing My.msg ros definition
+        # Or relatively :
+        from . import msg
 
+    # modules are still available, but importer has been deactivated.
