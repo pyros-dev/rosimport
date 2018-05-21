@@ -2,8 +2,26 @@ Changelog
 =========
 
 
+0.3.0 (2018-05-21)
+------------------
+- Reviewed README after API change. [AlexV]
+- Merge pull request #15 from pyros-dev/ff2_5. [AlexV]
+
+  adapting to latest filefinder2
+- Filefinder2 released. [AlexV]
+- Replicating filefinder2 API changes with a RosImporter class as
+  context manager. [AlexV]
+- Fixed bugs where hook indexes were switched. [AlexV]
+- Removing filefinder call where not needed. [AlexV]
+- Adapting to latest filefinder2. [AlexV]
+- Typo. [AlexV]
+- Fixing badges after moving github url. [alexv]
+- Fixing ignore list. [alexv]
+
+
 0.2.1 (2017-08-08)
 ------------------
+- V0.2.1. [alexv]
 - Now depending on latest filefinder2 release. [alexv]
 - Letting filefinder2 manage create_module API being available or not.
   [alexv]
