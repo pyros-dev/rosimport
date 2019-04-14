@@ -9,6 +9,9 @@ verify_ssl = true
 ros-genmsg = {editable = true,git = "https://github.com/asmodehn/genmsg.git",ref = "setuptools"}
 ros-genpy = {editable = true,git = "https://github.com/asmodehn/genpy.git",ref = "setuptools-kinetic"}
 pytest = "*"
+pytest-xdist = "*"
+gitchangelog = "*"
+twine = "*"
 
 [requires]
 python_version = "3.6"
