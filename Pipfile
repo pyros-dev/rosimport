@@ -4,14 +4,12 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-
-[packages]
-ros-genmsg = {editable = true,git = "https://github.com/asmodehn/genmsg.git",ref = "setuptools"}
-ros-genpy = {editable = true,git = "https://github.com/asmodehn/genpy.git",ref = "setuptools-kinetic"}
-pytest = "*"
-pytest-xdist = "*"
 gitchangelog = "*"
 twine = "*"
+pytest = "*"
+pytest-xdist = "*"
 
-[requires]
-python_version = "3.6"
+[packages]
+pyros-genmsg = "*"
+pyros-genpy = "*"
+filefinder2 = "*"
