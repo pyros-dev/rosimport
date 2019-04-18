@@ -2,8 +2,17 @@ Changelog
 =========
 
 
+0.4.0 (2019-04-18)
+------------------
+- Merge pull request #16 from pyros-dev/pyros_deps. [AlexV]
+
+  now relying on forked genmsg and genpy from PyPI.
+- Now relying on forked genmsg and genpy from PyPI. [AlexV]
+
+
 0.3.0 (2018-05-21)
 ------------------
+- V0.3.0. [AlexV]
 - Reviewed README after API change. [AlexV]
 - Merge pull request #15 from pyros-dev/ff2_5. [AlexV]
 
