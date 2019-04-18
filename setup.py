@@ -96,8 +96,8 @@ setuptools.setup(name='rosimport',
     # http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources
     install_requires=[
         'filefinder2>=0.4',
-        'ros_genmsg',
-        'ros_genpy'
+        'pyros_genmsg',
+        'pyros_genpy'
     ],
     cmdclass={
         'prepare_release': PrepareReleaseCommand,
