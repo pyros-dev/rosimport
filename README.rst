@@ -70,9 +70,10 @@ Usage:
     
 I only believe what I can see:
 ------------------------------
+.. raw:: html
 
+    <object data="./doc/rosimport_take1.svg" type="image/svg+xml"></object>
 
-.. |SVG term anim| image:: ./doc/rosimport_take1.svg
 
 
 
