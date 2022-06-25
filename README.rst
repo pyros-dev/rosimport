@@ -66,3 +66,16 @@ Usage:
         from . import msg
 
     # modules are still available, but importer has been deactivated.
+    
+    
+I only believe what I can see:
+------------------------------
+.. |SVG term anim| raw:: html
+    :file: ./doc/rosimport_take1.svg
+    
+
+
+
+
+
+    
